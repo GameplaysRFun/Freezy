@@ -1,0 +1,12 @@
+{
+    "login": {
+        "token": "your bot token"
+    },
+    "config": {
+        "prefix": ">",
+        "stacktrace": false
+    },
+    "perms": {
+        "masterUsers": []
+    }
+}

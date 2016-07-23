@@ -1,0 +1,22 @@
+{
+  "name": "Freezy",
+  "version": "1.0.0",
+  "description": "A discord bot designed for ease-of-use.",
+  "readme": "https://github.com/cernodile/Freezy/blob/master/README.md",
+  "author": {
+    "name": "Joann Mõndresku",
+    "email": "joann.mondresku@gmail.com",
+    "url": "https://www.hexiumgaming.com"
+  },
+  "engines": {
+    "node": "^5.x.x",
+    "npm": ">=3.x.x"
+  },
+  "license": "GPL-3.0",
+  "repository": "https://github.com/cernodile/Freezy/",
+  "dependencies": {
+    "chalk": "^1.1.3",
+    "eris": "abalabahaha/Eris",
+    "nedb": "^1.8.0"
+  }
+}
