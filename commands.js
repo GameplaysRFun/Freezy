@@ -140,7 +140,7 @@ request: {
     }
     else {
       bot.createMessage(msg.channel.id, 'Your request has been sended to the devs!')
-      bot.createMessage('206455823499526144', '**REQUEST** | **' + msg.author.username + '** | **' + date + '** :' + suffix)
+      bot.createMessage('206496656777150464', '**REQUEST** | **' + msg.author.username + '** | **' + date + '** :' + suffix)
     }
   }
 }
