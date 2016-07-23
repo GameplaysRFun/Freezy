@@ -135,6 +135,7 @@ request: {
   lvl: 0,
   fn: function(bot,msg, suffix) {
     var date = new date(msg.timestamp)
+    if (!suffix) {
       bot.createMessage(msg.channel.id, 'You need to add a request first! Use it like this: `>request This is a idea for the bot!`')
     }
     else {
