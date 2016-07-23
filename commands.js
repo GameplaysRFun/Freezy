@@ -128,19 +128,19 @@ hi: {
   bot.createMessage(msg.channel.id, sentences[random])
   }
 },
-request: {
-  name: 'Request',
+suggest: {
+  name: 'Suggest',
   help: 'You have a great idea for the bot? This command sends that idea to the devs!',
-  usage: 'request idea',
+  usage: 'suggest idea',
   lvl: 0,
   fn: function(bot,msg, suffix) {
     var date = new Date(msg.timestamp)
     if (!suffix) {
-      bot.createMessage(msg.channel.id, 'You need to add a request first! Use it like this: `>request This is a idea for the bot!`')
+      bot.createMessage(msg.channel.id, 'You need to add a suggestion first! Use it like this: `>suggest This is a idea for the bot!`')
     }
     else {
-      bot.createMessage(msg.channel.id, 'Your request has been sended to the devs!')
-      bot.createMessage('206496656777150464', '**REQUEST** | **' + msg.author.username + '** | **' + date + '** :' + suffix)
+      bot.createMessage(msg.channel.id, 'Your suggestion has been sended to the devs!')
+      bot.createMessage('206496656777150464', '**SUGGESTION** | **' + msg.author.username + '** | **' + date + '** :' + suffix)
     }
   }
 }
