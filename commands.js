@@ -114,6 +114,20 @@ var cmds = {
     }
   }
 }
+hi: {
+  name: 'Hi',
+  help: 'Just saying hi is nice! Freezy does not have many friends...',
+  usage: '<hi>',
+  lvl: 0,
+  fn: function(bot, msg, suffix) {
+    var sentences = ['Oh... Hello! I did not see you there... Probably because i am a bot.', 'Well hello there little fellow! Do you want some candy and com in my van?', 'I am not allowed to talk to strangers from my creator! I am sorry...', 'Hmm... Do you want to build a snowman? If not... I dont like you >:(']
+    var random = Math.floor((Math.random() * sentences.length))
+    if (random > sentences.length) {
+      random = 1
+    }
+  bot.createMessage(msg.channel.id, sentences[random])
+  }
+}
 
 function getCommandsName () { // DIRTY
   var cmdArray = []
