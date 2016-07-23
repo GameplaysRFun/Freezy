@@ -127,6 +127,21 @@ hi: {
     }
   bot.createMessage(msg.channel.id, sentences[random])
   }
+},
+request: {
+  name: 'Request',
+  help: 'You have a great idea for the bot? This command sends that idea to the devs!',
+  usage: 'request idea',
+  lvl: 0,
+  fn: function(bot,msg, suffix) {
+    var date = new date(msg.timestamp)
+      bot.createMessage(msg.channel.id, 'You need to add a request first! Use it like this: `>request This is a idea for the bot!`')
+    }
+    else {
+      bot.createMessage(msg.channel.id, 'Your request has been sended to the devs!')
+      bot.createMessage(206455823499526144, '**REQUEST** | **' + msg.author.username + '** | **' + date + '** :' + suffix)
+    }
+  }
 }
 
 function getCommandsName () { // DIRTY
