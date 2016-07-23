@@ -113,7 +113,7 @@ var cmds = {
       }
     }
   }
-}
+},
 hi: {
   name: 'Hi',
   help: 'Just saying hi is nice! Freezy does not have many friends...',
