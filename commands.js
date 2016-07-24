@@ -25,6 +25,15 @@ var cmds = {
       })
     }
   },
+  leave: {
+    name: 'Leave',
+    help: 'Leaves the server.',
+    usage: '<leave>',
+    lvl: 4,
+    fn: function(bot, msg, suffix) {
+      bot.leaveGuild(msg.channel.guild.id)
+    }
+  },
   voice: {
     name: 'Voice',
     help: 'Connects me to a voice channel.',
@@ -173,15 +182,52 @@ var cmds = {
     help: 'You have a great idea for the bot? This command sends that idea to the devs!',
     usage: 'suggest idea',
     lvl: 0,
-      fn: function(bot,msg, suffix) {
+      fn: function(bot, msg, suffix) {
       var date = new Date(msg.timestamp)
       if (!suffix) {
         bot.createMessage(msg.channel.id, 'You need to add a suggestion first!')
       } else {
         bot.createMessage(msg.channel.id, 'Your suggestion has been sent to the devs!')
-        bot.createMessage('206496656777150464', `**SUGGESTION** | **${msg.author.username} ** | **${date}** | **${suffix}**`)
+        bot.createMessage(config.config.suggest, `**SUGGESTION** | **${msg.author.username} ** | **${date}** | **${suffix}**`)
       }
     }
+  },
+  ban: {
+    name: 'Ban',
+    help: 'This command is meant for server staff to ban people.',
+    usage: '<ban @\u200Bmention (days)>',
+    lvl: 0,
+      fn: function(bot, msg, suffix) {
+        var base = suffix
+        var stub = base.split(' ')
+        if (msg.member.permission.json['banMembers']) {
+          if (msg.mentions.length === 1 && !isNaN(stub[1])) {
+            bot.banGuildMember(msg.channel.guild.id, msg.mentions[0].id, stub[1])
+            bot.createMessage(msg.channel.id, 'The user should now be banned, if I had the permissions for it!')
+          } else {
+            if (isNaN(stub[1])) return bot.createMessage(msg.channel.id, "Your second param is not a number!")
+            if (stub[0] !== msg.mentions[0]) bot.createMessage(msg.channel.id, "Your first param isn't a mention!")
+          }
+        } else {
+          bot.createMessage(msg.channel.id, 'Your role does not have enough permissions!')
+        }
+      }
+  },
+  kick: {
+    name: 'Kick',
+    help: 'This command is meant for server staff to kick people.',
+    usage: '<kick @\u200Bmention>',
+    lvl: 0,
+      fn: function(bot, msg, suffix) {
+        if (msg.member.permission.json['kickMembers']) {
+          if (msg.mentions.length === 1) {
+            bot.deleteGuildMember(msg.channel.guild.id, msg.mentions[0].id)
+            bot.createMessage(msg.channel.id, 'The user should now be kicked, if I had the permissions for it!')
+          }
+        } else {
+          bot.createMessage(msg.channel.id, 'Your role does not have enough permissions!')
+        }
+      }
   },
   userinfo: {
     name: 'Userinfo',
@@ -231,10 +277,10 @@ function getCommandsHelp (command) { // DIRTY
   var cmdArray = []
   for (var cmd in cmds) {
     if (cmds[cmd].name.toLowerCase() === command.toLowerCase()) {
-      cmdArray.push('**' + cmds[cmd].name + '**\n')
-      cmdArray.push('**Required level:** ' + cmds[cmd].lvl)
-      cmdArray.push('**Usage:** `' + cmds[cmd].usage + '`')
-      cmdArray.push('**Description:** ' + cmds[cmd].help)
+      cmdArray.push(`**${cmds[cmd].name}**\n`)
+      cmdArray.push(`**Required level:** ${cmds[cmd].lvl}`)
+      cmdArray.push(`**Usage:** ${'`' + cmds[cmd].usage + '`'}`)
+      cmdArray.push(`**Description:** ${cmds[cmd].help}`)
     }
   }
   if (cmdArray.length <= 0) {
