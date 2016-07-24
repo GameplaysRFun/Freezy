@@ -139,8 +139,8 @@ suggest: {
       bot.createMessage(msg.channel.id, 'You need to add a suggestion first! Use it like this: `>suggest This is a idea for the bot!`')
     }
     else {
-      bot.createMessage(msg.channel.id, 'Your suggestion has been sended to the devs!')
-      bot.createMessage('206496656777150464', '**SUGGESTION** | **' + msg.author.username + '** | **' + date + '** :' + suffix)
+      bot.createMessage(msg.channel.id, 'Your suggestion has been sent to the devs!')
+      bot.createMessage('206496656777150464', '**SUGGESTION** | **' + msg.author.username + '** | **' + date + '** | **' + suffix + '**')
     }
   }
 }
