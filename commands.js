@@ -160,21 +160,6 @@ var cmds = {
     usage: '<suggest idea>',
     lvl: 0,
     fn: function(bot, msg, suffix) {
-      var date = new Date(msg.timestamp)
-      if (!suffix) {
-        bot.createMessage(msg.channel.id, 'You need to add a suggestion first! Use it like this: `>suggest This is a idea for the bot!`')
-      } else {
-        bot.createMessage(msg.channel.id, 'Your suggestion has been sent to the devs!')
-        bot.createMessage('206496656777150464', '**SUGGESTION** | **' + msg.author.username + '** | **' + date + '** | **' + suffix + '**')
-      }
-    }
-  },
-  userinfo: {
-    name: 'Userinfo',
-    help: 'You need seme info about yourself or someone else? Then this is the command you need!',
-    usage: '<userinfo mention>',
-    lvl: 0,
-    fn: function(bot, msg, suffix) {
       var messageArray = []
       messageArray.push('```diff')
       if (msg.mentions.length == 1) {
@@ -182,7 +167,7 @@ var cmds = {
         messageArray.push('Id         | ' + msg.mentions[0].id)
         messageArray.push('Discrim    | ' + msg.mentions[0].discriminator)
         messageArray.push('Created At | ' + new Date(msg.mentions[0].createdAt))
-        messageArray.push('Bot?       | ' + msg.mentions[0].bot + '**')
+        messageArray.push('Bot?       | ' + msg.mentions[0].bot)
         messageArray.push('Avatar     | ' + 'https://cdn.discordapp.com/avatars/' + msg.mentions[0].id + '/' + msg.mentions[0].avatar + '.jpg')
       }
       else if (msg.mentions.length > 1) {
@@ -190,10 +175,10 @@ var cmds = {
       }
       else {
         messageArray.push('Name       | ' + msg.author.username)
-        messageArray.push('Id         | ' + msg.author.id + '**')
+        messageArray.push('Id         | ' + msg.author.id)
         messageArray.push('Discrim    | ' + msg.author.discriminator)
         messageArray.push('Created At | ' + new Date(msg.author.createdAt))
-        messageArray.push('Bot?       | ' + msg.author.bot +)
+        messageArray.push('Bot?       | ' + msg.author.bot)
         messageArray.push('Avatar     | ' + 'https://cdn.discordapp.com/avatars/' + msg.author.id + '/' + msg.author.avatar + '.jpg')
       }
       messageArray.push('```')
