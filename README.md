@@ -8,13 +8,15 @@ Freezy is a open-source Discord bot made for ease of use, formerly known as Prel
 [![Status](https://img.shields.io/badge/Status-In_progress-yellow.svg)]()
 ## Getting started
 First up open the config.json file, it should look something like this;
-```
+```json
 {
     "login": {
         "token": "your bot token"
     },
     "config": {
         "prefix": ">",
+        "suggest": "206496656777150464",
+        "shards": 3,
         "stacktrace": false
     },
     "perms": {
