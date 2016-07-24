@@ -1,5 +1,5 @@
 # Freezy
-Freezy is a open-source Discord bot made for ease of use, formerly known as Prelix. This is a complete rewrite, under another library called 'Eris' by @abalabahaha. Feel free to contribute to this project!
+Freezy is a open-source Discord bot made for ease of use, formerly known as Prelix. This is a complete rewrite, under another library called 'Eris' by [abalabahaha](https://github.com/abalabahaha). Feel free to contribute to this project!
 
 [![Node](https://img.shields.io/badge/Node-5.x.x-green.svg)](http://nodejs.org)
 [![NPM](https://img.shields.io/badge/NPM-3.x.x-blue.svg)](http://nodejs.org)
