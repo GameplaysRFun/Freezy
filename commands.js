@@ -34,6 +34,43 @@ var cmds = {
       bot.leaveGuild(msg.channel.guild.id)
     }
   },
+  assign: {
+    name: 'Assign',
+    help: 'Assigns something',
+    usage: '<assign parameter @\u200Bmention',
+    lvl: 9,
+    fn: function (bot, msg, suffix) {
+      var status = config.server.enabled
+      if (status) {
+      var official = config.server.id
+        if (msg.channel.guild.id === official) {
+          var contributor = config.server.contributor
+          var staff = config.server.staff
+          var base = suffix
+          var args = base.split(' ')
+          var params = ['contributor', 'staff']
+          if (args[0].toLowerCase() === params[0] && msg.mentions.length === 1) {
+            bot.editGuildMember(official, msg.mentions[0].id, {roles: [contributor]})
+            db.setAchievement(msg.mentions[0].id, params[0], true)
+            bot.createMessage(msg.channel.id, msg.mentions[0].username + ' is now a <@&' + contributor + '>!')
+          }
+          if (args[0].toLowerCase() === params[1] && msg.mentions.length === 1) {
+            bot.editGuildMember(official, msg.mentions[0].id, {roles: [staff]})
+            db.setAchievement(msg.mentions[0].id, params[0], true)
+            db.setAchievement(msg.mentions[0].id, params[1], true)
+            bot.createMessage(msg.channel.id, msg.mentions[0].username + ' is now a <@&' + staff + '> member!')
+          }
+          if (msg.mentions.length !== 1 && params.indexOf(args[0]) <= -1) {
+            bot.createMessage(msg.channel.id, "Are you certain, that you're using me properly? Try again.")
+          }
+        } else {
+          bot.createMessage(msg.channel.id, 'This is only applicable at the official server!')
+        }
+      } else {
+        bot.createMessage(msg.channel.id, 'Command disabled! Make sure to configure it before!')
+      }
+    }
+  },
   voice: {
     name: 'Voice',
     help: 'Connects me to a voice channel.',
@@ -94,21 +131,31 @@ var cmds = {
     usage: '<customize option value>',
     lvl: 3,
     fn: function(bot, msg, suffix) {
-      var settings = ['welcoming']
+      var settings = ['welcoming', 'welcome_message', 'farewell_message']
+      var args = ['${user}', '${guild}']
       var enable = ['on', 'true', 'enable']
       var disable = ['off', 'false', 'disable']
       var base = suffix
       var split = base.split(' ')
-      if (enable.indexOf(split[1].toLowerCase()) <= -1 && disable.indexOf(split[1].toLowerCase()) <= -1) return bot.createMessage(msg.channel.id, 'Invalid parameter! Please use something logical like "on", "true", "off", "false"!')
       if (settings.indexOf(split[0].toLowerCase()) <= -1) return bot.createMessage(msg.channel.id, 'Invalid parameter! Please use;\n\n' + settings.join(', '))
       if (settings.indexOf(split[0].toLowerCase()) >= 0) {
-        if(enable.indexOf(split[1].toLowerCase()) >= 0) {
+        if (enable.indexOf(split[1].toLowerCase()) >= 0) {
           db.setCustomization(msg.channel.guild.id, split[0], true).then((promise) => {
             bot.createMessage(msg.channel.id, 'Server customization settings successfuly edited!')
           })
         }
         if (disable.indexOf(split[1].toLowerCase()) >= 0) {
           db.setCustomization(msg.channel.guild.id, split[0], false).then((promise) => {
+            bot.createMessage(msg.channel.id, 'Server customization settings successfuly edited!')
+          })
+        }
+        if (split[0] === 'welcome_message') {
+          db.setCustomization(msg.channel.guild.id, split[0], suffix.substr(split[1])).then((promise) => {
+            bot.createMessage(msg.channel.id, 'Server customization settings successfuly edited!')
+          })
+        }
+        if (split[0] === 'farewell_message') {
+          db.setCustomization(msg.channel.guild.id, split[0], suffix.substr(split[1])).then((promise) => {
             bot.createMessage(msg.channel.id, 'Server customization settings successfuly edited!')
           })
         }
@@ -148,18 +195,24 @@ var cmds = {
   },
   achievements: {
     name: 'Achievements',
-    help: '',
+    help: 'Displays user achievements.',
     usage: '<achievements>',
     lvl: 0,
     fn: function(bot, msg, suffix) {
       var achieveArray = []
       var locked = ':no_entry_sign: Undiscovered Achievement!'
+      db.checkAchievement(msg.author.id, 'staff').then((ok) => {
+        achieveArray.push(':eyes: **Staff**')
+      })
+      db.checkAchievement(msg.author.id, 'contributor').then((ok) => {
+        achieveArray.push(':green_apple: **Contributor**')
+      })
       db.checkAchievement(msg.author.id, 'generated').then((ok) => {
-        achieveArray.push(':ok_hand: First achievement!')
-        bot.createMessage(msg.channel.id, achieveArray)
+        achieveArray.push(':ok_hand: **First achievement!**')
+        bot.createMessage(msg.channel.id, achieveArray.join('\n'))
       }).catch(e => {
         achieveArray.push(':white_check_mark: Generated your UserDB entry. Try typing the command again!')
-        bot.createMessage(msg.channel.id, achieveArray)
+        bot.createMessage(msg.channel.id, achieveArray.join('\n'))
       })
     }
   },
