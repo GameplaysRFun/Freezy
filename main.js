@@ -74,12 +74,16 @@ bot.on('guildDelete', (guild) => {
 })
 bot.on('guildMemberAdd', (guild, member) => {
   db.checkCustomization(guild.id, 'welcoming').then((promise) => {
-    bot.createMessage(guild.defaultChannel.id, `Welcome <@${member.user.id}> to **${guild.name}**!`)
+    db.checkCustomization(guild.id, 'welcome_message').then((welcomeMsg) => {
+      bot.createMessage(guild.defaultChannel.id, welcomeMsg.replace('${user}', `<@${member.user.id}>`).replace('${guild}', guild.name))
+    })
   })
 })
 bot.on('guildMemberRemove', (guild, member) => {
   db.checkCustomization(guild.id, 'welcoming').then((promise) => {
-    bot.createMessage(guild.defaultChannel.id, `Farewell, <@${member.user.id}>!`)
+    db.checkCustomization(guild.id, 'farewell_message').then((farewellMsg) => {
+      bot.createMessage(guild.defaultChannel.id, farewellMsg.replace('${user}', `<@${member.user.id}>`).replace('${guild}', guild.name))
+    })
   })
 })
 bot.on('warn', (msg, shard) => {
