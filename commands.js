@@ -196,6 +196,7 @@ var cmds = {
         messageArray.push('Bot?       | ' + msg.author.bot +)
         messageArray.push('Avatar     | ' + 'https://cdn.discordapp.com/avatars/' + msg.author.id + '/' + msg.author.avatar + '.jpg')
       }
+      messageArray.push('```')
       bot.createMessage(msg.channel.id, messageArray.join('\n'))
     }
   }
