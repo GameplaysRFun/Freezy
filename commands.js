@@ -168,7 +168,7 @@ var cmds = {
         bot.createMessage('206496656777150464', '**SUGGESTION** | **' + msg.author.username + '** | **' + date + '** | **' + suffix + '**')
       }
     }
-  }
+  },
   userinfo: {
     name: 'Userinfo',
     help: 'You need seme info about yourself or someone else? Then this is the command you need!',
