@@ -157,9 +157,9 @@ var cmds = {
   suggest: {
     name: 'Suggest',
     help: 'You have a great idea for the bot? This command sends that idea to the devs!',
-    usage: 'suggest idea',
+    usage: '<suggest idea>',
     lvl: 0,
-      fn: function(bot,msg, suffix) {
+    fn: function(bot, msg, suffix) {
       var date = new Date(msg.timestamp)
       if (!suffix) {
         bot.createMessage(msg.channel.id, 'You need to add a suggestion first! Use it like this: `>suggest This is a idea for the bot!`')
@@ -167,6 +167,35 @@ var cmds = {
         bot.createMessage(msg.channel.id, 'Your suggestion has been sent to the devs!')
         bot.createMessage('206496656777150464', '**SUGGESTION** | **' + msg.author.username + '** | **' + date + '** | **' + suffix + '**')
       }
+    }
+  }
+  userinfo: {
+    name: 'Userinfo',
+    help: 'You need seme info about yourself or someone else? Then this is the command you need!',
+    usage: '<userinfo mention>',
+    lvl: 0,
+    fn: function(bot, msg, suffix) {
+      var messageArray = []
+      if (msg.mentions.length == 1) {
+        messageArray.push('Name | **' + msg.mentions[0].username)
+        messageArray.push('Id | **' + msg.mentions[0].id)
+        messageArray.push('Discrim | **' + msg.mentions[0].discriminator)
+        messageArray.push('Created At | **' + new Date(msg.mentions[0].createdAt))
+        messageArray.push('Bot? | **' + msg.mentions[0].bot + '**')
+        messageArray.push('Avatar | **' + 'https://cdn.discordapp.com/avatars/' + msg.mentions[0].id + '/' + msg.mentions[0].avatar + '.jpg')
+      }
+      else if (msg.mentions.length > 1) {
+        messageArray.push('You can only mention 1 person!')
+      }
+      else {
+        messageArray.push('Name | **' + msg.author.username + '**')
+        messageArray.push('Id | **' + msg.author.id + '**')
+        messageArray.push('Discrim | **' + msg.author.discriminator + '**')
+        messageArray.push('Created At | **' + new Date(msg.author.createdAt) + '**')
+        messageArray.push('Bot? | **' + msg.author.bot + '**')
+        messageArray.push('Avatar | ' + 'https://cdn.discordapp.com/avatars/' + msg.author.id + '/' + msg.author.avatar + '.jpg')
+      }
+      bot.createMessage(msg.channel.id, messageArray.join('\n'))
     }
   }
 }
