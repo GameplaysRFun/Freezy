@@ -4,7 +4,12 @@ const chalk = require('chalk')
 var info = chalk.bold.green('Info: ')
 var masterUser = config.perms.masterUsers
 var serverDB = new Datastore({ filename: './datastorage/servers', autoload: true })
-
+var userDB = new Datastore({ filename: './datastorage/users', autoload: true })
+/*
+*
+* Server Database
+*
+*/
 function removeUserLvl (server, user) {
   serverDB.update({serverId: server}, {$pull: {lvl1: user}}, {}, function () {})
   serverDB.update({serverId: server}, {$pull: {lvl2: user}}, {}, function () {})
@@ -21,6 +26,8 @@ exports.guildCreation = function (server, user) {
     serverData.lvl1 = []
     serverData.lvl2 = []
     serverData.lvl3 = []
+    serverData.welcome_message = 'Welcome ${user} to **${guild}**!'
+    serverData.farewell_message = 'Farewell, ${user}!'
     serverDB.insert(serverData, function (err) {
       if (err) {
         console.log(err.stack) 
@@ -31,7 +38,46 @@ exports.guildCreation = function (server, user) {
     })
   })
 }
-
+exports.setCustomization = function(server, type, value) {
+  return new Promise((resolve, reject) => {
+    var types = ['welcoming', 'welcome_message', 'farewell_message']
+    if (type === 'welcoming') {
+      serverDB.update({serverId: server}, {$set: {welcoming: value}}, {}, function () {
+        return resolve(true)
+      })
+    } if (type === 'welcome_message') {
+      serverDB.update({serverId: server}, {$set: {welcome_message: value.replace('welcome_message ', '')}}, {}, function () {
+        return resolve(true)
+      })
+    } if (type === 'farewell_message') {
+      serverDB.update({serverId: server}, {$set: {farewell_message: value.replace('farewell_message ', '')}}, {}, function () {
+        return resolve(true)
+      })
+    } if (types.indexOf(type) <= -1) {
+      reject('Invalid type')
+    }
+  })
+}
+exports.checkCustomization = function(server, type) {
+  return new Promise((resolve, reject) => {
+    if (type === 'welcoming') {
+      serverDB.findOne({serverId: server}, function (e, doc) {
+        if (doc.welcoming === true) return resolve(true)
+        else return reject()
+      })
+    } if (type === 'welcome_message') {
+      serverDB.findOne({serverId: server}, function (e, doc) {
+        if (doc.welcome_message) return resolve(doc.welcome_message)
+        else return reject()
+      })
+    } if (type === 'farewell_message') {
+      serverDB.findOne({serverId: server}, function (e, doc) {
+        if (doc.welcome_message) return resolve(doc.farewell_message)
+        else return reject()
+      })
+    }
+  })
+}
 exports.guildDeletion = function (server) {
   console.log(info + 'Left a guild, deleting database entry!')
   return new Promise((resolve, reject) => {
@@ -85,6 +131,52 @@ exports.checkIfOwner = function (server, user) {
     serverDB.findOne({serverId: server}, function (e, doc) {
       if (e) return reject(e)
       if (doc.owner === user || masterUser.indexOf(user) >= 0) return resolve(true)
+    })
+  })
+}
+
+/*
+*
+* USER DATABASE
+*
+*/
+exports.createUser = function (user) {
+  return new Promise((resolve, reject) => {
+    userDB.findOne({userId: user}, function (e, doc) {
+      if (!doc) {
+        var userData = {}
+        userData.userId = user
+        userData.achievements = ['generated']
+        userDB.insert(userData, function (err) {
+          if (err) {
+            console.log(err.stack) 
+            return reject(err)
+          } else {
+            return resolve(true)
+          }
+        })
+      }
+    })
+  })
+}
+exports.setAchievement = function (user, id, boolean) {
+  return new Promise((resolve, reject) => {
+    if (boolean) {
+      userDB.update({userId: user}, {$push: {achievements: id}}, {}, (e) => {
+        if (e) return reject(e)
+      })
+    } else {
+      userDB.update({userId: user}, {$pull: {achievements: id}}, {}, (e) => {
+        if (e) return reject(e)
+      })
+    }
+  })
+}
+exports.checkAchievement = function (user, id) {
+  return new Promise((resolve, reject) => {
+    userDB.findOne({userId: user}, function (e, doc) {
+      if (!doc) return reject(exports.createUser(user))
+      if (doc.achievements.indexOf(id) >= 0) return resolve(true)
     })
   })
 }

@@ -4,7 +4,15 @@
     },
     "config": {
         "prefix": ">",
+        "suggest": "your suggestion channel id",
+        "shards": 3,
         "stacktrace": false
+    },
+    "server": {
+        "id": "your bot's server id",
+        "contributor": "your contributor role id",
+        "staff": "your staff role id",
+        "enabled": false
     },
     "perms": {
         "masterUsers": []
