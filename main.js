@@ -22,7 +22,7 @@ bot.on('ready', () => {
   var ready = new Date() - startup
   console.log(info + 'Logged in as ' + bot.user.username + '#' + bot.user.discriminator + ' (ID: ' + bot.user.id + ')')
   console.log(info + 'Startup took ' + ready + 'ms.')
-  bot.editGame({name: pkg.version+'! '+prefix+'ping <3', type: 1, url: 'https://twitch.tv//'})
+  bot.editGame({name: pkg.version + '! ' + prefix + 'ping <3', type: 1, url: 'https://twitch.tv//'})
 })
 
 bot.on('messageCreate', (msg) => {
@@ -64,6 +64,16 @@ bot.on('guildCreate', (guild) => {
 })
 bot.on('guildDelete', (guild) => {
   db.guildDeletion(guild.id)
+})
+bot.on('guildMemberAdd', (guild, member) => {
+  db.checkCustomization(guild.id, 'welcoming').then((promise) => {
+    bot.createMessage(guild.defaultChannel.id, 'Welcome <@' + member.user.id + '> to **' + guild.name + '**!')
+  })
+})
+bot.on('guildMemberRemove', (guild, member) => {
+  db.checkCustomization(guild.id, 'welcoming').then((promise) => {
+    bot.createMessage(guild.defaultChannel.id, 'Farewell, <@' + member.user.id + '>!')
+  })
 })
 
 bot.connect()

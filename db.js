@@ -31,7 +31,29 @@ exports.guildCreation = function (server, user) {
     })
   })
 }
-
+exports.setCustomization = function(server, type, value) {
+  return new Promise((resolve, reject) => {
+    if (type === 'welcoming') {
+      serverDB.update({serverId: server}, {$set: {welcoming: value}}, {}, function () {
+        return resolve(true)
+      })
+    } else {
+      reject('Invalid type')
+    }
+  })
+}
+exports.checkCustomization = function(server, type) {
+  return new Promise((resolve, reject) => {
+    if (type === 'welcoming') {
+      serverDB.findOne({serverId: server}, function (e, doc) {
+        if (doc.welcoming === true) return resolve(true)
+        else return reject()
+      })
+    } else {
+      reject('Invalid type')
+    }
+  })
+}
 exports.guildDeletion = function (server) {
   console.log(info + 'Left a guild, deleting database entry!')
   return new Promise((resolve, reject) => {

@@ -41,7 +41,7 @@ var cmds = {
           if (connection.playing) {
             connection.stopPlaying()
           }
-          // connection.playFile('./song.mp3') // re-enable if you got song only!
+          connection.playFile('./song.mp3') // re-enable if you got song only!
         })
       }
     }
@@ -82,6 +82,33 @@ var cmds = {
       }
     }
   },
+  customize: { // DIRTY! Needs rework later.
+    name: 'Customize',
+    help: 'Customizes the server preferences',
+    usage: '<customize option value>',
+    lvl: 3,
+    fn: function(bot, msg, suffix) {
+      var settings = ['welcoming']
+      var enable = ['on', 'true', 'enable']
+      var disable = ['off', 'false', 'disable']
+      var base = suffix
+      var split = base.split(' ')
+      if (enable.indexOf(split[1].toLowerCase()) <= -1 && disable.indexOf(split[1].toLowerCase()) <= -1) return bot.createMessage(msg.channel.id, 'Invalid parameter! Please use something logical like "on", "true", "off", "false"!')
+      if (settings.indexOf(split[0].toLowerCase()) <= -1) return bot.createMessage(msg.channel.id, 'Invalid parameter! Please use;\n\n' + settings.join(', '))
+      if (settings.indexOf(split[0].toLowerCase()) >= 0) {
+        if(enable.indexOf(split[1].toLowerCase()) >= 0) {
+          db.setCustomization(msg.channel.guild.id, split[0], true).then((promise) => {
+            bot.createMessage(msg.channel.id, 'Server customization settings successfuly edited!')
+          })
+        }
+        if (disable.indexOf(split[1].toLowerCase()) >= 0) {
+          db.setCustomization(msg.channel.guild.id, split[0], false).then((promise) => {
+            bot.createMessage(msg.channel.id, 'Server customization settings successfuly edited!')
+          })
+        }
+      }
+    }
+  },
   eval: {
     name: 'Eval',
     help: 'Evaluates code. Developer exclusive!',
@@ -112,35 +139,34 @@ var cmds = {
         bot.createMessage(msg.channel.id, getCommandsHelp(suffix))
       }
     }
-  }
-},
-hi: {
-  name: 'Hi',
-  help: 'Just saying hi is nice! Freezy does not have many friends...',
-  usage: '<hi>',
-  lvl: 0,
-  fn: function(bot, msg, suffix) {
-    var sentences = ['Oh... Hello! I did not see you there... Probably because i am a bot.', 'Well hello there little fellow! Do you want some candy and com in my van?', 'I am not allowed to talk to strangers from my creator! I am sorry...', 'Hmm... Do you want to build a snowman? If not... I dont like you >:(']
-    var random = Math.floor((Math.random() * sentences.length))
-    if (random > sentences.length) {
-      random = 1
+  },
+  hi: {
+    name: 'Hi',
+    help: 'Just saying hi is nice! Freezy does not have many friends...',
+    usage: '<hi>',
+    lvl: 0,
+    fn: function(bot, msg, suffix) {
+      var sentences = ['Oh... Hello! I did not see you there... Probably because i am a bot.', 'Well hello there little fellow! Do you want some candy and com in my van?', 'I am not allowed to talk to strangers from my creator! I am sorry...', 'Hmm... Do you want to build a snowman? If not... I dont like you >:(']
+      var random = Math.floor((Math.random() * sentences.length))
+      if (random > sentences.length) {
+        random = 1
+      }
+      bot.createMessage(msg.channel.id, sentences[random])
     }
-  bot.createMessage(msg.channel.id, sentences[random])
-  }
-},
-suggest: {
-  name: 'Suggest',
-  help: 'You have a great idea for the bot? This command sends that idea to the devs!',
-  usage: 'suggest idea',
-  lvl: 0,
-  fn: function(bot,msg, suffix) {
-    var date = new Date(msg.timestamp)
-    if (!suffix) {
-      bot.createMessage(msg.channel.id, 'You need to add a suggestion first! Use it like this: `>suggest This is a idea for the bot!`')
-    }
-    else {
-      bot.createMessage(msg.channel.id, 'Your suggestion has been sent to the devs!')
-      bot.createMessage('206496656777150464', '**SUGGESTION** | **' + msg.author.username + '** | **' + date + '** | **' + suffix + '**')
+  },
+  suggest: {
+    name: 'Suggest',
+    help: 'You have a great idea for the bot? This command sends that idea to the devs!',
+    usage: 'suggest idea',
+    lvl: 0,
+      fn: function(bot,msg, suffix) {
+      var date = new Date(msg.timestamp)
+      if (!suffix) {
+        bot.createMessage(msg.channel.id, 'You need to add a suggestion first! Use it like this: `>suggest This is a idea for the bot!`')
+      } else {
+        bot.createMessage(msg.channel.id, 'Your suggestion has been sent to the devs!')
+        bot.createMessage('206496656777150464', '**SUGGESTION** | **' + msg.author.username + '** | **' + date + '** | **' + suffix + '**')
+      }
     }
   }
 }
