@@ -4,7 +4,7 @@ Freezy is a open-source Discord bot made for ease of use, formerly known as Prel
 [![Node](https://img.shields.io/badge/Node-5.x.x-green.svg)](http://nodejs.org)
 [![NPM](https://img.shields.io/badge/NPM-3.x.x-blue.svg)](http://nodejs.org)
 [![License](https://img.shields.io/badge/License-GPL--3.0-blue.svg)]()
-[![Version](https://img.shields.io/badge/Version-1.0.0_dev-yellow.svg)]()
+[![Version](https://img.shields.io/badge/Version-1.0.1_dev-yellow.svg)]()
 [![Status](https://img.shields.io/badge/Status-In_progress-yellow.svg)]()
 ## Getting started
 First up open the config.json file, it should look something like this;
