@@ -176,24 +176,25 @@ var cmds = {
     lvl: 0,
     fn: function(bot, msg, suffix) {
       var messageArray = []
+      messageArray.push('```diff')
       if (msg.mentions.length == 1) {
-        messageArray.push('Name | **' + msg.mentions[0].username)
-        messageArray.push('Id | **' + msg.mentions[0].id)
-        messageArray.push('Discrim | **' + msg.mentions[0].discriminator)
-        messageArray.push('Created At | **' + new Date(msg.mentions[0].createdAt))
-        messageArray.push('Bot? | **' + msg.mentions[0].bot + '**')
-        messageArray.push('Avatar | **' + 'https://cdn.discordapp.com/avatars/' + msg.mentions[0].id + '/' + msg.mentions[0].avatar + '.jpg')
+        messageArray.push('Name       | ' + msg.mentions[0].username)
+        messageArray.push('Id         | ' + msg.mentions[0].id)
+        messageArray.push('Discrim    | ' + msg.mentions[0].discriminator)
+        messageArray.push('Created At | ' + new Date(msg.mentions[0].createdAt))
+        messageArray.push('Bot?       | ' + msg.mentions[0].bot + '**')
+        messageArray.push('Avatar     | ' + 'https://cdn.discordapp.com/avatars/' + msg.mentions[0].id + '/' + msg.mentions[0].avatar + '.jpg')
       }
       else if (msg.mentions.length > 1) {
         messageArray.push('You can only mention 1 person!')
       }
       else {
-        messageArray.push('Name | **' + msg.author.username + '**')
-        messageArray.push('Id | **' + msg.author.id + '**')
-        messageArray.push('Discrim | **' + msg.author.discriminator + '**')
-        messageArray.push('Created At | **' + new Date(msg.author.createdAt) + '**')
-        messageArray.push('Bot? | **' + msg.author.bot + '**')
-        messageArray.push('Avatar | ' + 'https://cdn.discordapp.com/avatars/' + msg.author.id + '/' + msg.author.avatar + '.jpg')
+        messageArray.push('Name       | ' + msg.author.username)
+        messageArray.push('Id         | ' + msg.author.id + '**')
+        messageArray.push('Discrim    | ' + msg.author.discriminator)
+        messageArray.push('Created At | ' + new Date(msg.author.createdAt))
+        messageArray.push('Bot?       | ' + msg.author.bot +)
+        messageArray.push('Avatar     | ' + 'https://cdn.discordapp.com/avatars/' + msg.author.id + '/' + msg.author.avatar + '.jpg')
       }
       bot.createMessage(msg.channel.id, messageArray.join('\n'))
     }
