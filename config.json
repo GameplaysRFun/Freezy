@@ -4,6 +4,8 @@
     },
     "config": {
         "prefix": ">",
+        "suggest": "206496656777150464",
+        "shards": 3,
         "stacktrace": false
     },
     "perms": {

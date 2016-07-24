@@ -10,19 +10,24 @@ var warn = chalk.bold.yellow('Warn: ')
 var token = config.login.token
 var masterUser = config.perms.masterUsers
 var stacktrace = config.config.stacktrace
+var shards = config.config.shards
 var prefix = config.config.prefix
-var bot = new Eris(token)
+var bot = new Eris(token, {maxShards: shards, lastShardID: shards - 1})
 
 if (prefix === '>') {
   console.log(`${warn}You're using the default '${prefix}' prefix for your bot, consider changing it!`)
 }
 var startup = new Date()
 console.log(`${info}Loading Freezy ${pkg.version}...`)
+bot.on('shardReady', (id) => {
+  var ready = new Date() - startup
+  console.log(`${info}Shard #${id + 1} is ready! Time taken so far ${ready}ms.`)
+})
 bot.on('ready', () => {
   var ready = new Date() - startup
   console.log(`${info}Logged in as ${bot.user.username}#${bot.user.discriminator} (ID: ${bot.user.id})`)
   console.log(`${info}Startup took ${ready}ms.`)
-  bot.editGame({name: pkg.version + `! ${prefix}help :3`, type: 1, url: 'https://twitch.tv//'})
+  bot.editGame({name: pkg.version + ` <3 | Running on ${shards} shards!`, type: 1, url: 'https://twitch.tv//'})
 })
 
 bot.on('messageCreate', (msg) => {
@@ -76,6 +81,9 @@ bot.on('guildMemberRemove', (guild, member) => {
   db.checkCustomization(guild.id, 'welcoming').then((promise) => {
     bot.createMessage(guild.defaultChannel.id, `Farewell, <@${member.user.id}>!`)
   })
+})
+bot.on('warn', (msg, shard) => {
+  console.log(`${warn}${msg} @ Shard #${shard + 1}`)
 })
 
 bot.connect()
