@@ -1,6 +1,7 @@
 const chalk = require('chalk')
 const config = require('./config.json')
 const db = require('./db.js')
+const ytdl = require('ytdl-core')
 var prefix = config.config.prefix
 var masterUser = config.perms.masterUsers
 var warn = chalk.bold.yellow('Warn: ')
@@ -27,7 +28,7 @@ var cmds = {
   },
   leave: {
     name: 'Leave',
-    help: 'Leaves the server.',
+    help: 'Leaves the server, if unable to do it somehow else.',
     usage: '<leave>',
     lvl: 4,
     fn: function(bot, msg, suffix) {
@@ -36,8 +37,8 @@ var cmds = {
   },
   assign: {
     name: 'Assign',
-    help: 'Assigns something',
-    usage: '<assign parameter @\u200Bmention',
+    help: 'Assigns something. Developer exclusive.',
+    usage: '<assign parameter @\u200Bmention>',
     lvl: 9,
     fn: function (bot, msg, suffix) {
       var status = config.server.enabled
@@ -74,17 +75,33 @@ var cmds = {
   voice: {
     name: 'Voice',
     help: 'Connects me to a voice channel.',
-    usage: '<voice>',
+    usage: '<voice youtube_link>',
     lvl: 1,
     fn: function(bot, msg, suffix) {
+      if (!suffix) {
+        return bot.createMessage(msg.channel.id, "\u200B**Sorry! Couldn't quite get that, what did you want again?**")
+      }
       if (!msg.member.voiceState.channelID) {
         bot.createMessage(msg.channel.id, "\u200B**Can't join a voice channel, if you're not in one yourself!**")
       } else if (msg.member.voiceState.selfDeaf|| msg.member.voiceState.deaf) {
         bot.createMessage(msg.channel.id, "\u200B**Sorry, you're either deafened locally or by server, try again when you're not deafened!**")
       } else {
         bot.joinVoiceChannel(msg.member.voiceState.channelID).then((connection) => {
-          bot.createMessage(msg.channel.id, "\u200B**Joined the voice channel you're currently in!**")
-          connection.playFile('./song.mp3')
+          if (connection.playing) {
+            connection.stopPlaying()
+          }
+          var infoArray = []
+          var info = ytdl.getInfo(suffix, function (e, info) {
+            if (e) return (e)
+            infoArray.push(info.title)
+          })
+          var song = ytdl(suffix,{
+            quality: 140
+          })
+          connection.playStream(song)
+          setTimeout(() => {
+            bot.createMessage(msg.channel.id, `\u200BPlaying **${infoArray[0]}** now..`)
+          }, 1250)
         })
       }
     }
@@ -291,11 +308,13 @@ var cmds = {
       var messageArray = []
       messageArray.push('```diff')
       if (msg.mentions.length == 1) {
+        console.log(msg.mentions[0])
         messageArray.push(`Name       | ${msg.mentions[0].username}`)
         messageArray.push(`Id         | ${msg.mentions[0].id}`)
         messageArray.push(`Discrim    | ${msg.mentions[0].discriminator}`)
         messageArray.push(`Created At | ${new Date(msg.mentions[0].createdAt)}`)
-        messageArray.push(`Bot?       | ${msg.mentions[0].bot}`)
+        messageArray.push(`Playing    | ${msg.mentions[0].game}`)
+        messageArray.push(`Bot       | ${msg.mentions[0].bot}`)
         messageArray.push(`Avatar     | https://cdn.discordapp.com/avatars/${msg.mentions[0].id}/${msg.mentions[0].avatar}.jpg`)
       }
       else if (msg.mentions.length > 1) {
@@ -306,7 +325,8 @@ var cmds = {
         messageArray.push(`Id         | ${msg.author.id}`)
         messageArray.push(`Discrim    | ${msg.author.discriminator}`)
         messageArray.push(`Created At | ${new Date(msg.author.createdAt)}`)
-        messageArray.push(`Bot?       | ${msg.author.bot}`)
+        messageArray.push(`Playing    | ${msg.member.game}`)
+        messageArray.push(`Bot       | ${msg.author.bot}`)
         messageArray.push(`Avatar     | https://cdn.discordapp.com/avatars/${msg.author.id}/${msg.author.avatar}.jpg`)
       }
       messageArray.push('```')
