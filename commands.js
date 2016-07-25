@@ -2,6 +2,9 @@ const chalk = require('chalk')
 const config = require('./config.json')
 const db = require('./db.js')
 const ytdl = require('ytdl-core')
+const ytnode = require('youtube-node')
+const YouTube = new ytnode()
+YouTube.setKey(config.keys.ytapi)
 var prefix = config.config.prefix
 var masterUser = config.perms.masterUsers
 var warn = chalk.bold.yellow('Warn: ')
@@ -331,6 +334,23 @@ var cmds = {
       }
       messageArray.push('```')
       bot.createMessage(msg.channel.id, messageArray.join('\n'))
+    }
+  },
+    youtube: {
+    name: 'Youtube',
+    help: 'If you want to search videos quickly via Discord, use this command!',
+    usage: '<youtube <search query>>',
+    lvl: 0,
+    fn: function(bot, msg, suffix) {
+      YouTube.search(suffix, 4, function(error, result) {
+        if (error) {
+          console.log(error)
+        } else {
+          var rand = Math.floor(Math.random() * (3 - 0 + 0)) + 0
+          if (result.items[rand] === undefined) return bot.createMessage(msg.channel.id, 'Something went wrong searching the query!')
+          bot.createMessage(msg.channel.id, 'https://www.youtube.com/watch?v=' + result.items[rand].id.videoId)
+        }
+      })
     }
   }
 }
