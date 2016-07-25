@@ -25,15 +25,25 @@ bot.on('shardReady', (id) => {
 })
 bot.on('ready', () => {
   var ready = new Date() - startup
+  bot.shards.forEach((shard) => {
+    shard.editGame({name: pkg.version + ` | Shard ${shard.id + 1} of ${shards}!`, type: 1, url: 'https://twitch.tv//'})
+  })
   console.log(`${info}Logged in as ${bot.user.username}#${bot.user.discriminator} (ID: ${bot.user.id})`)
   console.log(`${info}Startup took ${ready}ms.`)
-  bot.editGame({name: pkg.version + ` <3 | Running on ${shards} shards!`, type: 1, url: 'https://twitch.tv//'})
 })
 
 bot.on('messageCreate', (msg) => {
   if (!msg.author.bot) {
-    if (msg.content.startsWith(prefix)) {
+    if (msg.content.startsWith(prefix) || msg.mentions.length === 1 && msg.mentions[0].id == bot.user.id) {
       var base = msg.content.substr(prefix.length)
+      if (msg.mentions.length === 1)  {
+        if (msg.mentions[0].id === bot.user.id) {
+          var subsplit = msg.content.split(' ')
+          if (msg.content.startsWith('<@')) {
+            base = msg.content.substr(subsplit[0].length + 1)
+          }
+        }
+      }
       var stub = base.split(' ')
       var name = stub[0]
       var suffix = base.substr(stub[0].length + 1)
