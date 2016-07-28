@@ -1,9 +1,10 @@
 const Datastore = require('nedb')
 const config = require('../config.json')
 const Logger = require('./logger.js')
+const path = require("path");
 var masterUser = config.perms.masterUsers
-var serverDB = new Datastore({ filename: '../datastorage/servers', autoload: true })
-var userDB = new Datastore({ filename: '../datastorage/users', autoload: true })
+var serverDB = new Datastore({ filename: path.join(__dirname, "../", "datastorage", "servers"), autoload: true })
+var userDB = new Datastore({ filename: path.join(__dirname, "../", "datastorage", "users"), autoload: true })
 /*
 *
 * Server Database
@@ -117,6 +118,7 @@ exports.checkIfLvl = function (server, user, level) {
   return new Promise((resolve, reject) => {
     if (!server || !user || !level) return reject('Abort! Missing some parameters!')
     serverDB.findOne({serverId: server}, function (e, doc) {
+      if (!doc) return reject(e)
       if (e) return reject(e)
       if (masterUser.indexOf(user) >= 0) return resolve(9)
       if (doc.owner === user) return resolve(4)
@@ -133,6 +135,7 @@ exports.checkIfOwner = function (server, user) {
     if (!server || !user) return reject('Abort! Missing one or two of the params')
     serverDB.findOne({serverId: server}, function (e, doc) {
       if (e) return reject(e)
+      if (!doc) return reject(e)
       if (doc.owner === user || masterUser.indexOf(user) >= 0) return resolve(true)
     })
   })
