@@ -2,7 +2,9 @@
 - YouTube command
 - Winston logging
 - New file structuring
-- Some more I can't remember
+- replaceAll()
+- Prototype functions corner on files its' going to be needed at
+- Tweaks
 
 ### v1.0.2-nightly-25072016 release notes:
 - Music streaming from YouTube using `>voice`
