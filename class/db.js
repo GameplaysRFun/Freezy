@@ -25,6 +25,7 @@ exports.guildCreation = function (server, user) {
     serverData.lvl1 = []
     serverData.lvl2 = []
     serverData.lvl3 = []
+    serverData.welcoming = false
     serverData.welcome_message = 'Welcome ${user} to **${guild}**!'
     serverData.farewell_message = 'Farewell, ${user}!'
     serverDB.insert(serverData, function (err) {
