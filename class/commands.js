@@ -1,5 +1,5 @@
-const chalk = require('chalk')
-const config = require('./config.json')
+const Logger = require('./logger.js')
+const config = require('../config.json')
 const db = require('./db.js')
 const ytdl = require('ytdl-core')
 const ytnode = require('youtube-node')
@@ -7,9 +7,18 @@ const YouTube = new ytnode()
 YouTube.setKey(config.keys.ytapi)
 var prefix = config.config.prefix
 var masterUser = config.perms.masterUsers
-var warn = chalk.bold.yellow('Warn: ')
 
-var cmds = {
+/*
+* Functions corner
+* Used to set prototype functions
+* which can be used everywhere
+* in the file
+*/
+String.prototype.replaceAll = function (target, replacement) {
+  return this.split(target).join(replacement)
+}
+// Commands
+exports.execute = {
   ping: {
     name: 'Ping',
     help: 'Ping Pong!',
@@ -20,7 +29,7 @@ var cmds = {
       var random = Math.floor(pingArray.length * Math.random())
       if (random > pingArray.length) {
         random = 3
-        console.log(warn + 'Someone got unexpected ping response, retrieving "Pong!".')
+        Logger.warn('Someone got unexpected ping response, retrieving "Pong!".')
       }
       var time1 = new Date()
       bot.createMessage(msg.channel.id, '\u200B' + pingArray[random]).then(message => {
@@ -95,16 +104,39 @@ var cmds = {
           }
           var infoArray = []
           var info = ytdl.getInfo(suffix, function (e, info) {
-            if (e) return (e)
+            if (e) {
+              if (suffix.startsWith('https://www.youtube.com/watch?v=') || suffix.startsWith('https://youtu.be/')) {
+                bot.createMessage(msg.channel.id, '**Something went wrong parsing this video!**')
+                console.log(e)
+              }
+              return connection.disconnect()
+            }
             infoArray.push(info.title)
+            var secs = ''
+            var mins = ''
+            var seczero = ''
+            var minzero = ''
+            var hourzero = ''
+            var hour = ''
+            if (Math.floor(info.length_seconds / 60 % 60) > 0) mins = Math.floor(info.length_seconds / 60 % 60) + ':'
+            if (Math.floor(info.length_seconds % 60)) secs = Math.floor(info.length_seconds % 60)
+            if (Math.floor(info.length_seconds % 60) < 10) seczero = '0'
+            if (Math.floor(info.length_seconds / 60 % 60) < 10 && !Math.floor(info.length_seconds / 60 % 60) < 1) minzero = '0'
+            if (Math.floor(info.length_seconds / 60 / 60)) hour = Math.floor(info.length_seconds / 60 / 60) + ':'
+            if (Math.floor(info.length_seconds / 60 / 60) > 9) hourzero = ''
+            infoArray.push('`[' + hourzero + hour + minzero + mins + seczero + secs + ']`')
           })
-          var song = ytdl(suffix,{
+          var song = ytdl(suffix, {
             quality: 140
           })
           connection.playStream(song)
           setTimeout(() => {
-            bot.createMessage(msg.channel.id, `\u200BPlaying **${infoArray[0]}** now..`)
-          }, 1250)
+            if (infoArray[0] === undefined) {
+              connection.disconnect()
+              return bot.createMessage(msg.channel.id, '**Sorry, I only accept valid YouTube videos!**')
+            }
+            bot.createMessage(msg.channel.id, `\u200B${infoArray[1]} Playing **${infoArray[0]}** now..`)
+          }, 550)
         })
       }
     }
@@ -118,7 +150,7 @@ var cmds = {
       var base = suffix
       var userid = false
       if (msg.mentions.length === 1) {
-        userid = msg.mentions[0]
+        userid = msg.mentions[0].id
       }
       var split = base.split(' ')
       split[0] = userid
@@ -336,7 +368,7 @@ var cmds = {
       bot.createMessage(msg.channel.id, messageArray.join('\n'))
     }
   },
-    youtube: {
+  youtube: {
     name: 'Youtube',
     help: 'If you want to search videos quickly via Discord, use this command!',
     usage: '<youtube <search query>>',
@@ -347,7 +379,13 @@ var cmds = {
           console.log(error)
         } else {
           var rand = Math.floor(Math.random() * (3 - 0 + 0)) + 0
-          if (result.items[rand] === undefined) return bot.createMessage(msg.channel.id, 'Something went wrong searching the query!')
+          if (result.items[rand] === undefined) {
+            try {
+              return bot.createMessage(msg.channel.id, 'Something went wrong searching the query!')
+            } catch (e) {
+              
+            }
+          }
           bot.createMessage(msg.channel.id, 'https://www.youtube.com/watch?v=' + result.items[rand].id.videoId)
         }
       })
@@ -359,8 +397,8 @@ function getCommandsName () { // DIRTY
   var cmdArray = []
   var helpArray = []
   helpArray.push('**Commands list**')
-  for (var cmd in cmds) {
-    cmdArray.push(cmds[cmd].name.toLowerCase())
+  for (var cmd in exports.execute) {
+    cmdArray.push(exports.execute[cmd].name.toLowerCase())
   }
   helpArray.push(cmdArray.sort().join(', '))
   helpArray.push("If you'd like to know more about a specific command, please type in `" + prefix + "help commands name`!")
@@ -368,12 +406,12 @@ function getCommandsName () { // DIRTY
 }
 function getCommandsHelp (command) { // DIRTY
   var cmdArray = []
-  for (var cmd in cmds) {
-    if (cmds[cmd].name.toLowerCase() === command.toLowerCase()) {
-      cmdArray.push(`**${cmds[cmd].name}**\n`)
-      cmdArray.push(`**Required level:** ${cmds[cmd].lvl}`)
-      cmdArray.push(`**Usage:** ${'`' + cmds[cmd].usage + '`'}`)
-      cmdArray.push(`**Description:** ${cmds[cmd].help}`)
+  for (var cmd in exports.execute) {
+    if (exports.execute[cmd].name.toLowerCase() === command.toLowerCase()) {
+      cmdArray.push(`**${exports.execute[cmd].name}**\n`)
+      cmdArray.push(`**Required level:** ${exports.execute[cmd].lvl}`)
+      cmdArray.push(`**Usage:** ${'`' + exports.execute[cmd].usage + '`'}`)
+      cmdArray.push(`**Description:** ${exports.execute[cmd].help}`)
     }
   }
   if (cmdArray.length <= 0) {
@@ -381,5 +419,3 @@ function getCommandsHelp (command) { // DIRTY
   }
   return cmdArray.join('\n')
 }
-
-exports.execute = cmds

@@ -1,10 +1,9 @@
 const Datastore = require('nedb')
-const config = require('./config.json')
-const chalk = require('chalk')
-var info = chalk.bold.green('Info: ')
+const config = require('../config.json')
+const Logger = require('./logger.js')
 var masterUser = config.perms.masterUsers
-var serverDB = new Datastore({ filename: './datastorage/servers', autoload: true })
-var userDB = new Datastore({ filename: './datastorage/users', autoload: true })
+var serverDB = new Datastore({ filename: '../datastorage/servers', autoload: true })
+var userDB = new Datastore({ filename: '../datastorage/users', autoload: true })
 /*
 *
 * Server Database
@@ -17,7 +16,7 @@ function removeUserLvl (server, user) {
 }
 
 exports.guildCreation = function (server, user) {
-  console.log(info + 'Joined a guild, creating database entry!')
+  Logger.log('Joined a guild, creating database entry!')
   return new Promise((resolve, reject) => {
     if (!server || !user) return reject('Abort! Missing one or two of the params')
     var serverData = {}
@@ -60,6 +59,7 @@ exports.setCustomization = function(server, type, value) {
 }
 exports.checkCustomization = function(server, type) {
   return new Promise((resolve, reject) => {
+    var types = ['welcoming', 'welcome_message', 'farewell_message']
     if (type === 'welcoming') {
       serverDB.findOne({serverId: server}, function (e, doc) {
         if (doc.welcoming === true) return resolve(true)
@@ -75,11 +75,13 @@ exports.checkCustomization = function(server, type) {
         if (doc.welcome_message) return resolve(doc.farewell_message)
         else return reject()
       })
+    } if (types.indexOf(type) <= -1) {
+      reject('Invalid type')
     }
   })
 }
 exports.guildDeletion = function (server) {
-  console.log(info + 'Left a guild, deleting database entry!')
+  Logger.log('Left a guild, deleting database entry!')
   return new Promise((resolve, reject) => {
     if (!server) return reject('Abort! Missing server!')
     serverDB.remove({serverId: server}, { multi: true }, function (e, doc) {

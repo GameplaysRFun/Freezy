@@ -29,6 +29,10 @@ First up open the config.json file, it should look something like this;
     },
     "perms": {
         "masterUsers": []
+    },
+    "keys": {
+        "ytapi": "youtube v3 api key",
+        "cse": "cse key"
     }
 }
 
