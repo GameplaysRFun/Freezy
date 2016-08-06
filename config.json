@@ -16,5 +16,9 @@
     },
     "perms": {
         "masterUsers": []
+    },
+    "keys": {
+        "ytapi": "youtube v3 api key",
+        "cse": "cse key"
     }
 }

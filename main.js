@@ -1,39 +1,57 @@
 const Eris = require('eris')
-const chalk = require('chalk')
+const Logger = require('./class/logger.js')
 const config = require('./config.json')
-const cmd = require('./commands.js')
+const cmd = require('./class/commands.js')
 const pkg = require('./package.json')
-const db = require('./db.js')
-var info = chalk.bold.green('Info: ')
-var error = chalk.bold.red('Error: ')
-var warn = chalk.bold.yellow('Warn: ')
+const db = require('./class/db.js')
 var token = config.login.token
 var masterUser = config.perms.masterUsers
 var stacktrace = config.config.stacktrace
 var shards = config.config.shards
 var prefix = config.config.prefix
-var bot = new Eris(token, {maxShards: shards, lastShardID: shards - 1})
+var oauth = config.login.oauth
+var bot = new Eris(token, {maxShards: shards, lastShardID: shards - 1, userAccount: oauth})
 
+/*
+* Functions corner
+* Used to set prototype functions
+* which can be used everywhere
+* in the file
+*/
+String.prototype.replaceAll = function (target, replacement) {
+  return this.split(target).join(replacement)
+}
+// Bot
 if (prefix === '>') {
-  console.log(`${warn}You're using the default '${prefix}' prefix for your bot, consider changing it!`)
+  Logger.warn(`You're using the default '${prefix}' prefix for your bot, consider changing it!`)
 }
 var startup = new Date()
-console.log(`${info}Loading Freezy ${pkg.version}...`)
+Logger.log(`Loading Freezy ${pkg.version}...`)
 bot.on('shardReady', (id) => {
   var ready = new Date() - startup
-  console.log(`${info}Shard #${id + 1} is ready! Time taken so far ${ready}ms.`)
+  Logger.log(`Shard #${id + 1} is ready! Time taken so far ${ready}ms.`)
 })
 bot.on('ready', () => {
   var ready = new Date() - startup
-  console.log(`${info}Logged in as ${bot.user.username}#${bot.user.discriminator} (ID: ${bot.user.id})`)
-  console.log(`${info}Startup took ${ready}ms.`)
-  bot.editGame({name: pkg.version + ` <3 | Running on ${shards} shards!`, type: 1, url: 'https://twitch.tv//'})
+  bot.shards.forEach((shard) => {
+    shard.editGame({name: pkg.version + ` | Shard ${shard.id + 1} of ${shards}!`, type: 1, url: 'https://twitch.tv//'})
+  })
+  Logger.log(`Logged in as ${bot.user.username}#${bot.user.discriminator} (ID: ${bot.user.id})`)
+  Logger.log(`Startup took ${ready}ms.`)
 })
 
 bot.on('messageCreate', (msg) => {
   if (!msg.author.bot) {
-    if (msg.content.startsWith(prefix)) {
+    if (msg.content.startsWith(prefix) || msg.mentions.length === 1 && msg.mentions[0].id == bot.user.id) {
       var base = msg.content.substr(prefix.length)
+      if (msg.mentions.length === 1)  {
+        if (msg.mentions[0].id === bot.user.id) {
+          var subsplit = msg.content.split(' ')
+          if (msg.content.startsWith('<@')) {
+            base = msg.content.substr(subsplit[0].length + 1)
+          }
+        }
+      }
       var stub = base.split(' ')
       var name = stub[0]
       var suffix = base.substr(stub[0].length + 1)
@@ -53,13 +71,13 @@ bot.on('messageCreate', (msg) => {
         } else {
           bot.createMessage(msg.channel.id, "Can't do this at Direct Messages, silly!")
         }
-        console.log(`${info}${msg.author.username} executed <${stub.join(' ')}>`)
+        Logger.log(`${msg.author.username} executed <${stub.join(' ')}>`)
       } catch (e) {
-        console.log(`${error}${msg.author.username} attempt to execute <${stub.join(' ')}>`)
+        Logger.error(`${msg.author.username} attempt to execute <${stub.join(' ')}>`)
         if (stacktrace) {
-          console.log(`${error}Stacktrace: ${e.stack}`)
+          Logger.error(`Stacktrace: ${e.stack}`)
         } if (!stacktrace) {
-          console.log(`${error}Error: ${e}`)
+          Logger.error(`Error: ${e}`)
         }
       }
     }
@@ -75,19 +93,19 @@ bot.on('guildDelete', (guild) => {
 bot.on('guildMemberAdd', (guild, member) => {
   db.checkCustomization(guild.id, 'welcoming').then((promise) => {
     db.checkCustomization(guild.id, 'welcome_message').then((welcomeMsg) => {
-      bot.createMessage(guild.defaultChannel.id, welcomeMsg.replace('${user}', `<@${member.user.id}>`).replace('${guild}', guild.name))
+      bot.createMessage(guild.defaultChannel.id, welcomeMsg.replaceAll('${user}', `<@${member.user.id}>`).replaceAll('${guild}', guild.name))
     })
   })
 })
 bot.on('guildMemberRemove', (guild, member) => {
   db.checkCustomization(guild.id, 'welcoming').then((promise) => {
     db.checkCustomization(guild.id, 'farewell_message').then((farewellMsg) => {
-      bot.createMessage(guild.defaultChannel.id, farewellMsg.replace('${user}', `<@${member.user.id}>`).replace('${guild}', guild.name))
+      bot.createMessage(guild.defaultChannel.id, farewellMsg.replaceAll('${user}', `<@${member.user.id}>`).replaceAll('${guild}', guild.name))
     })
   })
 })
 bot.on('warn', (msg, shard) => {
-  console.log(`${warn}${msg} @ Shard #${shard + 1}`)
+  Logger.warn(`${msg} @ Shard #${shard + 1}`)
 })
 
 bot.connect()

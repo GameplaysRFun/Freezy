@@ -1,10 +1,10 @@
 const Datastore = require('nedb')
-const config = require('./config.json')
-const chalk = require('chalk')
-var info = chalk.bold.green('Info: ')
+const config = require('../config.json')
+const Logger = require('./logger.js')
+const path = require("path");
 var masterUser = config.perms.masterUsers
-var serverDB = new Datastore({ filename: './datastorage/servers', autoload: true })
-var userDB = new Datastore({ filename: './datastorage/users', autoload: true })
+var serverDB = new Datastore({ filename: path.join(__dirname, "../", "datastorage", "servers"), autoload: true })
+var userDB = new Datastore({ filename: path.join(__dirname, "../", "datastorage", "users"), autoload: true })
 /*
 *
 * Server Database
@@ -17,7 +17,7 @@ function removeUserLvl (server, user) {
 }
 
 exports.guildCreation = function (server, user) {
-  console.log(info + 'Joined a guild, creating database entry!')
+  Logger.log('Joined a guild, creating database entry!')
   return new Promise((resolve, reject) => {
     if (!server || !user) return reject('Abort! Missing one or two of the params')
     var serverData = {}
@@ -26,6 +26,7 @@ exports.guildCreation = function (server, user) {
     serverData.lvl1 = []
     serverData.lvl2 = []
     serverData.lvl3 = []
+    serverData.welcoming = false
     serverData.welcome_message = 'Welcome ${user} to **${guild}**!'
     serverData.farewell_message = 'Farewell, ${user}!'
     serverDB.insert(serverData, function (err) {
@@ -60,6 +61,7 @@ exports.setCustomization = function(server, type, value) {
 }
 exports.checkCustomization = function(server, type) {
   return new Promise((resolve, reject) => {
+    var types = ['welcoming', 'welcome_message', 'farewell_message']
     if (type === 'welcoming') {
       serverDB.findOne({serverId: server}, function (e, doc) {
         if (doc.welcoming === true) return resolve(true)
@@ -75,11 +77,13 @@ exports.checkCustomization = function(server, type) {
         if (doc.welcome_message) return resolve(doc.farewell_message)
         else return reject()
       })
+    } if (types.indexOf(type) <= -1) {
+      reject('Invalid type')
     }
   })
 }
 exports.guildDeletion = function (server) {
-  console.log(info + 'Left a guild, deleting database entry!')
+  Logger.log('Left a guild, deleting database entry!')
   return new Promise((resolve, reject) => {
     if (!server) return reject('Abort! Missing server!')
     serverDB.remove({serverId: server}, { multi: true }, function (e, doc) {
@@ -114,6 +118,7 @@ exports.checkIfLvl = function (server, user, level) {
   return new Promise((resolve, reject) => {
     if (!server || !user || !level) return reject('Abort! Missing some parameters!')
     serverDB.findOne({serverId: server}, function (e, doc) {
+      if (!doc) return reject(e)
       if (e) return reject(e)
       if (masterUser.indexOf(user) >= 0) return resolve(9)
       if (doc.owner === user) return resolve(4)
@@ -130,6 +135,7 @@ exports.checkIfOwner = function (server, user) {
     if (!server || !user) return reject('Abort! Missing one or two of the params')
     serverDB.findOne({serverId: server}, function (e, doc) {
       if (e) return reject(e)
+      if (!doc) return reject(e)
       if (doc.owner === user || masterUser.indexOf(user) >= 0) return resolve(true)
     })
   })

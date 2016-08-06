@@ -1,11 +1,25 @@
-const chalk = require('chalk')
-const config = require('./config.json')
+const Logger = require('./logger.js')
+const config = require('../config.json')
 const db = require('./db.js')
+const ytdl = require('ytdl-core')
+const ytnode = require('youtube-node')
+const YouTube = new ytnode()
+const pkg = require('../package.json')
+YouTube.setKey(config.keys.ytapi)
 var prefix = config.config.prefix
 var masterUser = config.perms.masterUsers
-var warn = chalk.bold.yellow('Warn: ')
 
-var cmds = {
+/*
+* Functions corner
+* Used to set prototype functions
+* which can be used everywhere
+* in the file
+*/
+String.prototype.replaceAll = function (target, replacement) {
+  return this.split(target).join(replacement)
+}
+// Commands
+exports.execute = {
   ping: {
     name: 'Ping',
     help: 'Ping Pong!',
@@ -16,7 +30,7 @@ var cmds = {
       var random = Math.floor(pingArray.length * Math.random())
       if (random > pingArray.length) {
         random = 3
-        console.log(warn + 'Someone got unexpected ping response, retrieving "Pong!".')
+        Logger.warn('Someone got unexpected ping response, retrieving "Pong!".')
       }
       var time1 = new Date()
       bot.createMessage(msg.channel.id, '\u200B' + pingArray[random]).then(message => {
@@ -27,7 +41,7 @@ var cmds = {
   },
   leave: {
     name: 'Leave',
-    help: 'Leaves the server.',
+    help: 'Leaves the server, if unable to do it somehow else.',
     usage: '<leave>',
     lvl: 4,
     fn: function(bot, msg, suffix) {
@@ -36,8 +50,8 @@ var cmds = {
   },
   assign: {
     name: 'Assign',
-    help: 'Assigns something',
-    usage: '<assign parameter @\u200Bmention',
+    help: 'Assigns something. Developer exclusive.',
+    usage: '<assign parameter @\u200Bmention>',
     lvl: 9,
     fn: function (bot, msg, suffix) {
       var status = config.server.enabled
@@ -74,17 +88,56 @@ var cmds = {
   voice: {
     name: 'Voice',
     help: 'Connects me to a voice channel.',
-    usage: '<voice>',
+    usage: '<voice youtube_link>',
     lvl: 1,
     fn: function(bot, msg, suffix) {
+      if (!suffix) {
+        return bot.createMessage(msg.channel.id, "\u200B**Sorry! Couldn't quite get that, what did you want again?**")
+      }
       if (!msg.member.voiceState.channelID) {
         bot.createMessage(msg.channel.id, "\u200B**Can't join a voice channel, if you're not in one yourself!**")
       } else if (msg.member.voiceState.selfDeaf|| msg.member.voiceState.deaf) {
         bot.createMessage(msg.channel.id, "\u200B**Sorry, you're either deafened locally or by server, try again when you're not deafened!**")
       } else {
         bot.joinVoiceChannel(msg.member.voiceState.channelID).then((connection) => {
-          bot.createMessage(msg.channel.id, "\u200B**Joined the voice channel you're currently in!**")
-          connection.playFile('./song.mp3')
+          if (connection.playing) {
+            connection.stopPlaying()
+          }
+          var infoArray = []
+          var info = ytdl.getInfo(suffix, function (e, info) {
+            if (e) {
+              if (suffix.startsWith('https://www.youtube.com/watch?v=') || suffix.startsWith('https://youtu.be/')) {
+                bot.createMessage(msg.channel.id, '**Something went wrong parsing this video!**')
+                console.log(e)
+              }
+              return connection.disconnect()
+            }
+            infoArray.push(info.title)
+            var secs = ''
+            var mins = ''
+            var seczero = ''
+            var minzero = ''
+            var hourzero = ''
+            var hour = ''
+            if (Math.floor(info.length_seconds / 60 % 60) > 0) mins = Math.floor(info.length_seconds / 60 % 60) + ':'
+            if (Math.floor(info.length_seconds % 60)) secs = Math.floor(info.length_seconds % 60)
+            if (Math.floor(info.length_seconds % 60) < 10) seczero = '0'
+            if (Math.floor(info.length_seconds / 60 % 60) < 10 && !Math.floor(info.length_seconds / 60 % 60) < 1) minzero = '0'
+            if (Math.floor(info.length_seconds / 60 / 60)) hour = Math.floor(info.length_seconds / 60 / 60) + ':'
+            if (Math.floor(info.length_seconds / 60 / 60) > 9) hourzero = ''
+            infoArray.push('`[' + hourzero + hour + minzero + mins + seczero + secs + ']`')
+          })
+          var song = ytdl(suffix, {
+            quality: 140
+          })
+          connection.playStream(song)
+          setTimeout(() => {
+            if (infoArray[0] === undefined) {
+              connection.disconnect()
+              return bot.createMessage(msg.channel.id, '**Sorry, I only accept valid YouTube videos!**')
+            }
+            bot.createMessage(msg.channel.id, `\u200B${infoArray[1]} Playing **${infoArray[0]}** now..`)
+          }, 550)
         })
       }
     }
@@ -98,7 +151,7 @@ var cmds = {
       var base = suffix
       var userid = false
       if (msg.mentions.length === 1) {
-        userid = msg.mentions[0]
+        userid = msg.mentions[0].id
       }
       var split = base.split(' ')
       split[0] = userid
@@ -187,9 +240,15 @@ var cmds = {
     lvl: 0,
     fn: function(bot, msg, suffix) {
       if (!suffix) { // DIRTY
-        bot.createMessage(msg.channel.id, getCommandsName())
+        bot.getDMChannel(msg.author.id).then((DMChannel) => {
+          if (msg.channel.guild) bot.createMessage(msg.channel.id, '**Sent you a direct message of my commands!**')
+          bot.createMessage(DMChannel.id, getCommandsName())
+        })
       } else {
-        bot.createMessage(msg.channel.id, getCommandsHelp(suffix))
+        bot.getDMChannel(msg.author.id).then((DMChannel) => {
+          if (msg.channel.guild) bot.createMessage(msg.channel.id, '**Sent you a direct message of what you requested!**')
+          bot.createMessage(DMChannel.id, getCommandsHelp(suffix))
+        })
       }
     }
   },
@@ -200,7 +259,6 @@ var cmds = {
     lvl: 0,
     fn: function(bot, msg, suffix) {
       var achieveArray = []
-      var locked = ':no_entry_sign: Undiscovered Achievement!'
       db.checkAchievement(msg.author.id, 'staff').then((ok) => {
         achieveArray.push(':eyes: **Staff**')
       })
@@ -288,52 +346,162 @@ var cmds = {
     usage: '<userinfo mention>',
     lvl: 0,
     fn: function(bot, msg, suffix) {
+      function checkGame (type, game) {
+        if (type === 0 || type === undefined) return 'Playing :** ' + game
+        if (type >= 1) return 'Streaming :** ' + game
+      }
       var messageArray = []
-      messageArray.push('```diff')
+      messageArray.push('**==> Requested information <==**\n')
       if (msg.mentions.length == 1) {
-        messageArray.push(`Name       | ${msg.mentions[0].username}`)
-        messageArray.push(`Id         | ${msg.mentions[0].id}`)
-        messageArray.push(`Discrim    | ${msg.mentions[0].discriminator}`)
-        messageArray.push(`Created At | ${new Date(msg.mentions[0].createdAt)}`)
-        messageArray.push(`Bot?       | ${msg.mentions[0].bot}`)
-        messageArray.push(`Avatar     | https://cdn.discordapp.com/avatars/${msg.mentions[0].id}/${msg.mentions[0].avatar}.jpg`)
+        var mentioned = msg.channel.guild.members.get(msg.mentions[0].id)
+        console.log(msg.mentions)
+        messageArray.push(`**-> Name :** ${msg.mentions[0].username}`)
+        messageArray.push(`**-> Id :** ${mentioned.id}`)
+        messageArray.push(`**-> Discrim :** ${msg.mentions[0].discriminator}`)
+        messageArray.push(`**-> Created At :** ${new Date(msg.mentions[0].createdAt)}`)
+        if (mentioned.game !== null) messageArray.push('**-> ' + checkGame(mentioned.game.type, mentioned.game.name))
+        messageArray.push(`**-> Status :** ${mentioned.status.toUpperCase()}`)
+        messageArray.push(`**-> Bot :** ${msg.mentions[0].bot}`)
+        if (msg.mentions[0].avatar !== null) messageArray.push(`**-> Avatar :** ${msg.mentions[0].avatarURL}`)
+        if (msg.mentions[0].avatar === null) messageArray.push(`**-> Avatar :** ${msg.mentions[0].defaultAvatarURL}`)
       }
       else if (msg.mentions.length > 1) {
         messageArray.push('You can only mention 1 person!')
       }
       else {
-        messageArray.push(`Name       | ${msg.author.username}`)
-        messageArray.push(`Id         | ${msg.author.id}`)
-        messageArray.push(`Discrim    | ${msg.author.discriminator}`)
-        messageArray.push(`Created At | ${new Date(msg.author.createdAt)}`)
-        messageArray.push(`Bot?       | ${msg.author.bot}`)
-        messageArray.push(`Avatar     | https://cdn.discordapp.com/avatars/${msg.author.id}/${msg.author.avatar}.jpg`)
+        messageArray.push(`**-> Name :** ${msg.author.username}`)
+        messageArray.push(`**-> Id :** ${msg.author.id}`)
+        messageArray.push(`**-> Discrim :** ${msg.author.discriminator}`)
+        messageArray.push(`**-> Created At :** ${new Date(msg.author.createdAt)}`)
+        if (msg.member.game !== null) messageArray.push('**-> ' + checkGame(msg.member.game.type, msg.member.game.name))
+        messageArray.push(`**-> Status :**  ${msg.member.status.toUpperCase()}`)
+        messageArray.push(`**-> Bot :** ${msg.author.bot}`)
+        if (msg.author.avatar !== null) messageArray.push(`**-> Avatar :** ${msg.author.avatarURL}`)
+        if (msg.author.avatar === null) messageArray.push(`**-> Avatar :** ${msg.author.defaultAvatarURL}`)
       }
-      messageArray.push('```')
       bot.createMessage(msg.channel.id, messageArray.join('\n'))
+    }
+  },
+  youtube: {
+    name: 'Youtube',
+    help: 'If you want to search videos quickly via Discord, use this command!',
+    usage: '<youtube <search query>>',
+    lvl: 0,
+    fn: function(bot, msg, suffix) {
+      YouTube.search(suffix, 4, function(error, result) {
+        if (error) {
+          console.log(error)
+        } else {
+          var rand = Math.floor(Math.random() * (3 - 0 + 0)) + 0
+          if (result.items[rand] === undefined) {
+            try {
+              return bot.createMessage(msg.channel.id, 'Something went wrong searching the query!')
+            } catch (e) {
+              
+            }
+          }
+          bot.createMessage(msg.channel.id, 'https://www.youtube.com/watch?v=' + result.items[rand].id.videoId)
+        }
+      })
+    }
+  },
+  info: {
+    name: 'Info',
+    help: 'Tells you about me!',
+    usage: '<info>',
+    lvl: 0,
+    fn: function(bot, msg, suffix) {
+      var gc = []
+      bot.guilds.forEach((guild) => {
+        gc.push(guild.name)
+      })
+      var uc = []
+      bot.users.forEach((user) => {
+        uc.push(user.id)
+      })
+      var msgArray = []
+      msgArray.push(`Hi! I am **${bot.user.username}**! I'm currently in **${gc.length}** servers, serving **${uc.length}** users!`)
+      msgArray.push('You can find my source code at https://github.com/TeamCernodile/Freezy, feel free to contribute!')
+      msgArray.push('**Freezy** is made by, and regulary updated by Team Cernodile.')
+      msgArray.push('Currently running version **' + pkg.version + '**.')
+      bot.createMessage(msg.channel.id, msgArray.join('\n'))
+    }
+  },
+  server: {
+    name: 'Server',
+    help: 'Tells you about the server you are in!',
+    usage: '<server>',
+    lvl: 0,
+    fn: function(bot, msg, suffix) {
+      function verifyStages (lvl) {
+        if (lvl === 0) return 'None'
+        if (lvl === 1) return 'Low'
+        if (lvl === 2) return 'Medium'
+        if (lvl === 3) return '(╯°□°）╯︵ ┻━┻'
+      }
+      function countChannels (type) {
+        var w = []
+        msg.channel.guild.channels.forEach((g) => {
+          if (g.type === type) w.push('#' + g.name)
+        })
+        return w.length
+      }
+      if (msg.channel.guild) {
+        var msgArray = []
+        var guild = msg.channel.guild
+        var gName = guild.name
+        if (guild.emojis) {
+          for (var i in guild.emojis) {
+            if (guild.emojis[i].name === 'TCfreezy') {
+              gName = '<:TCfreezy:' + guild.emojis[i].id + '>' + guild.name
+            }
+          }
+        }
+        var owner = msg.channel.guild.members.get(guild.ownerID).user
+        msgArray.push('==< Information for **' + gName + '** >==\n')
+        msgArray.push('**-> Region:** ' + guild.region)
+        msgArray.push('**-> ID:** ' + guild.id)
+        msgArray.push('**-> Owner: ' + owner.username + '**#' + owner.discriminator + ' *(ID: ' + owner.id + ')*')
+        msgArray.push('**-> Members:** ' + guild.memberCount)
+        msgArray.push('**-> Created at:** ' + new Date(guild.joinedAt))
+        msgArray.push('**-> Default channel:** <#' + guild.defaultChannel.id + '>')
+        msgArray.push('**-> Text Channels:** ' + countChannels(0))
+        msgArray.push('**-> Voice Channels:** ' + countChannels(2))
+        var k = []
+        if (guild.emojis) {
+          for (var i in guild.emojis) {
+            k.push('<:' + guild.emojis[i].name + ':' + guild.emojis[i].id + '>')
+          }
+          msgArray.push('**-> Custom Emojis:** ' + k.join(' '))
+        }
+        if (guild.afkChannelID !== null) msgArray.push('**-> AFK Channel:** ' + bot.getChannel(guild.afkChannelID).name)
+        msgArray.push('**-> AFK Timeout:** ' + Math.floor(guild.afkTimeout / 60) + ' minutes')
+        msgArray.push('**-> Verification Stage:** ' + verifyStages(guild.verificationLevel))
+        msgArray.push('**-> Icon:** https://discordapp.com/api/guilds/' + guild.id + '/icons/' + guild.icon + '.jpg')
+        bot.createMessage(msg.channel.id, msgArray.join('\n'))
+      }
     }
   }
 }
-
 function getCommandsName () { // DIRTY
   var cmdArray = []
   var helpArray = []
   helpArray.push('**Commands list**')
-  for (var cmd in cmds) {
-    cmdArray.push(cmds[cmd].name.toLowerCase())
+  for (var cmd in exports.execute) {
+    cmdArray.push(exports.execute[cmd].name.toLowerCase())
   }
-  helpArray.push(cmdArray.sort().join(', '))
+  helpArray.push(cmdArray.sort().join('\n'))
   helpArray.push("If you'd like to know more about a specific command, please type in `" + prefix + "help commands name`!")
   return helpArray.join('\n\n')
 }
 function getCommandsHelp (command) { // DIRTY
   var cmdArray = []
-  for (var cmd in cmds) {
-    if (cmds[cmd].name.toLowerCase() === command.toLowerCase()) {
-      cmdArray.push(`**${cmds[cmd].name}**\n`)
-      cmdArray.push(`**Required level:** ${cmds[cmd].lvl}`)
-      cmdArray.push(`**Usage:** ${'`' + cmds[cmd].usage + '`'}`)
-      cmdArray.push(`**Description:** ${cmds[cmd].help}`)
+  for (var cmd in exports.execute) {
+    if (exports.execute[cmd].name.toLowerCase() === command.toLowerCase()) {
+      cmdArray.push(`**${exports.execute[cmd].name}**\n`)
+      cmdArray.push(`**Required level:** ${exports.execute[cmd].lvl}`)
+      cmdArray.push(`**Usage:** ${'`' + exports.execute[cmd].usage + '`'}`)
+      cmdArray.push(`**Description:** ${exports.execute[cmd].help}`)
     }
   }
   if (cmdArray.length <= 0) {
@@ -341,5 +509,3 @@ function getCommandsHelp (command) { // DIRTY
   }
   return cmdArray.join('\n')
 }
-
-exports.execute = cmds
