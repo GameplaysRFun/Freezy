@@ -4,6 +4,7 @@ const db = require('./db.js')
 const ytdl = require('ytdl-core')
 const ytnode = require('youtube-node')
 const YouTube = new ytnode()
+const pkg = require('../package.json')
 YouTube.setKey(config.keys.ytapi)
 var prefix = config.config.prefix
 var masterUser = config.perms.masterUsers
@@ -239,9 +240,15 @@ exports.execute = {
     lvl: 0,
     fn: function(bot, msg, suffix) {
       if (!suffix) { // DIRTY
-        bot.createMessage(msg.channel.id, getCommandsName())
+        bot.getDMChannel(msg.author.id).then((DMChannel) => {
+          if (msg.channel.guild) bot.createMessage(msg.channel.id, '**Sent you a direct message of my commands!**')
+          bot.createMessage(DMChannel.id, getCommandsName())
+        })
       } else {
-        bot.createMessage(msg.channel.id, getCommandsHelp(suffix))
+        bot.getDMChannel(msg.author.id).then((DMChannel) => {
+          if (msg.channel.guild) bot.createMessage(msg.channel.id, '**Sent you a direct message of what you requested!**')
+          bot.createMessage(DMChannel.id, getCommandsHelp(suffix))
+        })
       }
     }
   },
@@ -252,7 +259,6 @@ exports.execute = {
     lvl: 0,
     fn: function(bot, msg, suffix) {
       var achieveArray = []
-      var locked = ':no_entry_sign: Undiscovered Achievement!'
       db.checkAchievement(msg.author.id, 'staff').then((ok) => {
         achieveArray.push(':eyes: **Staff**')
       })
@@ -340,31 +346,39 @@ exports.execute = {
     usage: '<userinfo mention>',
     lvl: 0,
     fn: function(bot, msg, suffix) {
+      function checkGame (type, game) {
+        if (type === 0 || type === undefined) return 'Playing :** ' + game
+        if (type >= 1) return 'Streaming :** ' + game
+      }
       var messageArray = []
-      messageArray.push('```diff')
+      messageArray.push('**==> Requested information <==**\n')
       if (msg.mentions.length == 1) {
-        console.log(msg.mentions[0])
-        messageArray.push(`Name       | ${msg.mentions[0].username}`)
-        messageArray.push(`Id         | ${msg.mentions[0].id}`)
-        messageArray.push(`Discrim    | ${msg.mentions[0].discriminator}`)
-        messageArray.push(`Created At | ${new Date(msg.mentions[0].createdAt)}`)
-        messageArray.push(`Playing    | ${msg.mentions[0].game}`)
-        messageArray.push(`Bot       | ${msg.mentions[0].bot}`)
-        messageArray.push(`Avatar     | https://cdn.discordapp.com/avatars/${msg.mentions[0].id}/${msg.mentions[0].avatar}.jpg`)
+        var mentioned = msg.channel.guild.members.get(msg.mentions[0].id)
+        console.log(msg.mentions)
+        messageArray.push(`**-> Name :** ${msg.mentions[0].username}`)
+        messageArray.push(`**-> Id :** ${mentioned.id}`)
+        messageArray.push(`**-> Discrim :** ${msg.mentions[0].discriminator}`)
+        messageArray.push(`**-> Created At :** ${new Date(msg.mentions[0].createdAt)}`)
+        if (mentioned.game !== null) messageArray.push('**-> ' + checkGame(mentioned.game.type, mentioned.game.name))
+        messageArray.push(`**-> Status :** ${mentioned.status.toUpperCase()}`)
+        messageArray.push(`**-> Bot :** ${msg.mentions[0].bot}`)
+        if (msg.mentions[0].avatar !== null) messageArray.push(`**-> Avatar :** ${msg.mentions[0].avatarURL}`)
+        if (msg.mentions[0].avatar === null) messageArray.push(`**-> Avatar :** ${msg.mentions[0].defaultAvatarURL}`)
       }
       else if (msg.mentions.length > 1) {
         messageArray.push('You can only mention 1 person!')
       }
       else {
-        messageArray.push(`Name       | ${msg.author.username}`)
-        messageArray.push(`Id         | ${msg.author.id}`)
-        messageArray.push(`Discrim    | ${msg.author.discriminator}`)
-        messageArray.push(`Created At | ${new Date(msg.author.createdAt)}`)
-        messageArray.push(`Playing    | ${msg.member.game}`)
-        messageArray.push(`Bot       | ${msg.author.bot}`)
-        messageArray.push(`Avatar     | https://cdn.discordapp.com/avatars/${msg.author.id}/${msg.author.avatar}.jpg`)
+        messageArray.push(`**-> Name :** ${msg.author.username}`)
+        messageArray.push(`**-> Id :** ${msg.author.id}`)
+        messageArray.push(`**-> Discrim :** ${msg.author.discriminator}`)
+        messageArray.push(`**-> Created At :** ${new Date(msg.author.createdAt)}`)
+        if (msg.member.game !== null) messageArray.push('**-> ' + checkGame(msg.member.game.type, msg.member.game.name))
+        messageArray.push(`**-> Status :**  ${msg.member.status.toUpperCase()}`)
+        messageArray.push(`**-> Bot :** ${msg.author.bot}`)
+        if (msg.author.avatar !== null) messageArray.push(`**-> Avatar :** ${msg.author.avatarURL}`)
+        if (msg.author.avatar === null) messageArray.push(`**-> Avatar :** ${msg.author.defaultAvatarURL}`)
       }
-      messageArray.push('```')
       bot.createMessage(msg.channel.id, messageArray.join('\n'))
     }
   },
@@ -390,9 +404,85 @@ exports.execute = {
         }
       })
     }
+  },
+  info: {
+    name: 'Info',
+    help: 'Tells you about me!',
+    usage: '<info>',
+    lvl: 0,
+    fn: function(bot, msg, suffix) {
+      var gc = []
+      bot.guilds.forEach((guild) => {
+        gc.push(guild.name)
+      })
+      var uc = []
+      bot.users.forEach((user) => {
+        uc.push(user.id)
+      })
+      var msgArray = []
+      msgArray.push(`Hi! I am **${bot.user.username}**! I'm currently in **${gc.length}** servers, serving **${uc.length}** users!`)
+      msgArray.push('You can find my source code at https://github.com/TeamCernodile/Freezy, feel free to contribute!')
+      msgArray.push('**Freezy** is made by, and regulary updated by Team Cernodile.')
+      msgArray.push('Currently running version **' + pkg.version + '**.')
+      bot.createMessage(msg.channel.id, msgArray.join('\n'))
+    }
+  },
+  server: {
+    name: 'Server',
+    help: 'Tells you about the server you are in!',
+    usage: '<server>',
+    lvl: 0,
+    fn: function(bot, msg, suffix) {
+      function verifyStages (lvl) {
+        if (lvl === 0) return 'None'
+        if (lvl === 1) return 'Low'
+        if (lvl === 2) return 'Medium'
+        if (lvl === 3) return '(╯°□°）╯︵ ┻━┻'
+      }
+      function countChannels (type) {
+        var w = []
+        msg.channel.guild.channels.forEach((g) => {
+          if (g.type === type) w.push('#' + g.name)
+        })
+        return w.length
+      }
+      if (msg.channel.guild) {
+        var msgArray = []
+        var guild = msg.channel.guild
+        var gName = guild.name
+        if (guild.emojis) {
+          for (var i in guild.emojis) {
+            if (guild.emojis[i].name === 'TCfreezy') {
+              gName = '<:TCfreezy:' + guild.emojis[i].id + '>' + guild.name
+            }
+          }
+        }
+        var owner = msg.channel.guild.members.get(guild.ownerID).user
+        msgArray.push('==< Information for **' + gName + '** >==\n')
+        msgArray.push('**-> Region:** ' + guild.region)
+        msgArray.push('**-> ID:** ' + guild.id)
+        msgArray.push('**-> Owner: ' + owner.username + '**#' + owner.discriminator + ' *(ID: ' + owner.id + ')*')
+        msgArray.push('**-> Members:** ' + guild.memberCount)
+        msgArray.push('**-> Created at:** ' + new Date(guild.joinedAt))
+        msgArray.push('**-> Default channel:** <#' + guild.defaultChannel.id + '>')
+        msgArray.push('**-> Text Channels:** ' + countChannels(0))
+        msgArray.push('**-> Voice Channels:** ' + countChannels(2))
+        var k = []
+        if (guild.emojis) {
+          for (var i in guild.emojis) {
+            k.push('<:' + guild.emojis[i].name + ':' + guild.emojis[i].id + '>')
+          }
+          msgArray.push('**-> Custom Emojis:** ' + k.join(' '))
+        }
+        if (guild.afkChannelID !== null) msgArray.push('**-> AFK Channel:** ' + bot.getChannel(guild.afkChannelID).name)
+        msgArray.push('**-> AFK Timeout:** ' + Math.floor(guild.afkTimeout / 60) + ' minutes')
+        msgArray.push('**-> Verification Stage:** ' + verifyStages(guild.verificationLevel))
+        msgArray.push('**-> Icon:** https://discordapp.com/api/guilds/' + guild.id + '/icons/' + guild.icon + '.jpg')
+        bot.createMessage(msg.channel.id, msgArray.join('\n'))
+      }
+    }
   }
 }
-
 function getCommandsName () { // DIRTY
   var cmdArray = []
   var helpArray = []
@@ -400,7 +490,7 @@ function getCommandsName () { // DIRTY
   for (var cmd in exports.execute) {
     cmdArray.push(exports.execute[cmd].name.toLowerCase())
   }
-  helpArray.push(cmdArray.sort().join(', '))
+  helpArray.push(cmdArray.sort().join('\n'))
   helpArray.push("If you'd like to know more about a specific command, please type in `" + prefix + "help commands name`!")
   return helpArray.join('\n\n')
 }
