@@ -6,8 +6,8 @@ NOTE! Freezy uses Eris development build, to get it, type in `npm install abalab
 [![Node](https://img.shields.io/badge/Node-5.x.x-green.svg)](http://nodejs.org)
 [![NPM](https://img.shields.io/badge/NPM-3.x.x-blue.svg)](http://nodejs.org)
 [![License](https://img.shields.io/badge/License-GPL--3.0-blue.svg)]()
-[![Version](https://img.shields.io/badge/Version-1.0.2_dev-yellow.svg)]()
-[![Status](https://img.shields.io/badge/Status-Nightly-blue.svg)]()
+[![Version](https://img.shields.io/badge/Version-1.0.2-green.svg)]()
+[![Status](https://img.shields.io/badge/Status-Stable-green.svg)]()
 ## Getting started
 First up open the config.json file, it should look something like this;
 ```json
