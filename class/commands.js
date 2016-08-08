@@ -18,6 +18,9 @@ var masterUser = config.perms.masterUsers
 String.prototype.replaceAll = function (target, replacement) {
   return this.split(target).join(replacement)
 }
+String.prototype.firstUpperCase = function() {
+    return this.charAt(0).toUpperCase() + this.substring(1);
+}
 // Commands
 exports.execute = {
   ping: {
@@ -101,16 +104,20 @@ exports.execute = {
       } else {
         bot.joinVoiceChannel(msg.member.voiceState.channelID).then((connection) => {
           if (connection.playing) {
-            connection.stopPlaying()
+            setTimeout(() => {
+              connection.stopPlaying()
+            }, 400)
           }
           var infoArray = []
           var info = ytdl.getInfo(suffix, function (e, info) {
             if (e) {
               if (suffix.startsWith('https://www.youtube.com/watch?v=') || suffix.startsWith('https://youtu.be/')) {
                 bot.createMessage(msg.channel.id, '**Something went wrong parsing this video!**')
-                console.log(e)
+                return console.log(e)
               }
-              return connection.disconnect()
+              if (connection.playing) {
+                return connection.stopPlaying()
+              } else return connection.disconnect()
             }
             infoArray.push(info.title)
             var secs = ''
@@ -131,6 +138,13 @@ exports.execute = {
             quality: 140
           })
           connection.playStream(song)
+          connection.once('err', (e) => {
+            return bot.createMessage(msg.channel.id, '**Encountered an error!**\n\n' + e)
+          })
+          connection.once('end', () => {
+              connection.disconnect()
+              return bot.createMessage(msg.channel.id, 'Finished playing **' + infoArray[0] + '**...')
+          })
           setTimeout(() => {
             if (infoArray[0] === undefined) {
               connection.disconnect()
@@ -138,6 +152,8 @@ exports.execute = {
             }
             bot.createMessage(msg.channel.id, `\u200B${infoArray[1]} Playing **${infoArray[0]}** now..`)
           }, 550)
+        }).catch((e) => {
+          return bot.createMessage(msg.channel.id, '**Someone requested songs too fast, try again!\n\nError:** \n' + e)
         })
       }
     }
@@ -347,39 +363,83 @@ exports.execute = {
     lvl: 0,
     fn: function(bot, msg, suffix) {
       function checkGame (type, game) {
-        if (type === 0 || type === undefined) return 'Playing :** ' + game
-        if (type >= 1) return 'Streaming :** ' + game
+        return `${type ? 'Playing: ' : 'Streaming: '}**${game}**`
       }
+      function getAvy (type) {
+        if (type === 'self') {
+          if (msg.author.avatar !== null) messageArray.push(`-> Avatar: ${msg.author.avatarURL}`)
+          if (msg.author.avatar === null) messageArray.push(`-> Avatar: ${msg.author.defaultAvatarURL}`)
+        } else {
+          if (msg.mentions[0].avatar !== null) messageArray.push(`-> Avatar: ${msg.mentions[0].avatarURL}`)
+          if (msg.mentions[0].avatar === null) messageArray.push(`-> Avatar: ${msg.mentions[0].defaultAvatarURL}`)
+        }
+      }
+      function parseRoles () {
+        var d = []
+        msg.channel.guild.roles.forEach((role) => {
+          if (roles.indexOf(role.id) >= 0) {
+            d.push(role.name)
+          }
+        })
+        return d.join(', ')
+      }
+      var type = 'self'
       var messageArray = []
+      var userid = msg.author.id
+      var roles = msg.member.roles
       messageArray.push('**==> Requested information <==**\n')
       if (msg.mentions.length == 1) {
+        userid = msg.mentions[0].id
+        var type = 'mention'
         var mentioned = msg.channel.guild.members.get(msg.mentions[0].id)
-        console.log(msg.mentions)
-        messageArray.push(`**-> Name :** ${msg.mentions[0].username}`)
-        messageArray.push(`**-> Id :** ${mentioned.id}`)
-        messageArray.push(`**-> Discrim :** ${msg.mentions[0].discriminator}`)
-        messageArray.push(`**-> Created At :** ${new Date(msg.mentions[0].createdAt)}`)
-        if (mentioned.game !== null) messageArray.push('**-> ' + checkGame(mentioned.game.type, mentioned.game.name))
-        messageArray.push(`**-> Status :** ${mentioned.status.toUpperCase()}`)
-        messageArray.push(`**-> Bot :** ${msg.mentions[0].bot}`)
-        if (msg.mentions[0].avatar !== null) messageArray.push(`**-> Avatar :** ${msg.mentions[0].avatarURL}`)
-        if (msg.mentions[0].avatar === null) messageArray.push(`**-> Avatar :** ${msg.mentions[0].defaultAvatarURL}`)
-      }
-      else if (msg.mentions.length > 1) {
+        roles = mentioned.roles
+        messageArray.push(`-> Name: **${msg.mentions[0].username}**`)
+        if (mentioned.nick !== null) messageArray.push(`-> Nick: **${mentioned.nick}**`)
+        messageArray.push(`-> Id: **${mentioned.id}**`)
+        messageArray.push(`-> Discrim: **${msg.mentions[0].discriminator}**`)
+        messageArray.push(`-> Created At: **${new Date(msg.mentions[0].createdAt)}**`)
+        if (msg.channel.guild) {
+          messageArray.push('-> Joined Server At: **' + new Date(mentioned.joinedAt) + '**')
+          messageArray.push('-> Roles: **' + parseRoles() + '**')
+        }
+        if (mentioned.game !== null) messageArray.push('-> ' + checkGame(mentioned.game.type, mentioned.game.name))
+        messageArray.push(`-> Status: **${mentioned.status.toUpperCase()}**`)
+        messageArray.push(`-> Bot: **${msg.mentions[0].bot ? 'Yes' : 'No'}**`)
+      } else if (msg.mentions.length > 1) {
         messageArray.push('You can only mention 1 person!')
+      } else {
+        messageArray.push(`-> Name: **${msg.author.username}**`)
+        if (msg.member.nick !== null) messageArray.push(`-> Nick: **${msg.member.nick}**`)
+        messageArray.push(`-> Id: **${msg.author.id}**`)
+        messageArray.push(`-> Discrim: **${msg.author.discriminator}**`)
+        messageArray.push(`-> Created At: **${new Date(msg.author.createdAt)}**`)
+        if (msg.channel.guild) {
+          messageArray.push('-> Joined Server At: **' + new Date(msg.member.joinedAt) + '**')
+          messageArray.push('-> Roles: **' + parseRoles() + '**')
+        }
+        if (msg.member.game !== null) messageArray.push('-> ' + checkGame(msg.member.game.type, msg.member.game.name))
+        messageArray.push(`-> Status: **${msg.member.status.toUpperCase()}**`)
+        messageArray.push(`-> Bot: **${msg.author.bot ? 'Yes' : 'No'}**`)
       }
-      else {
-        messageArray.push(`**-> Name :** ${msg.author.username}`)
-        messageArray.push(`**-> Id :** ${msg.author.id}`)
-        messageArray.push(`**-> Discrim :** ${msg.author.discriminator}`)
-        messageArray.push(`**-> Created At :** ${new Date(msg.author.createdAt)}`)
-        if (msg.member.game !== null) messageArray.push('**-> ' + checkGame(msg.member.game.type, msg.member.game.name))
-        messageArray.push(`**-> Status :**  ${msg.member.status.toUpperCase()}`)
-        messageArray.push(`**-> Bot :** ${msg.author.bot}`)
-        if (msg.author.avatar !== null) messageArray.push(`**-> Avatar :** ${msg.author.avatarURL}`)
-        if (msg.author.avatar === null) messageArray.push(`**-> Avatar :** ${msg.author.defaultAvatarURL}`)
-      }
-      bot.createMessage(msg.channel.id, messageArray.join('\n'))
+      bot.getOAuthApplication('@me').then((own) => {
+        if (messageArray.length > 3) {
+          if (own.owner.id === userid || userid === bot.user.id) {
+            messageArray.push('-> Bot Owner: **Yes**')
+            messageArray.push(`-> 2FA: **${bot.user.mfaEnabled ? 'Yes' : 'No'}**`)
+            messageArray.push(`-> Verified: **${bot.user.verified ? 'Yes' : 'No'}**`)
+          } else {
+            if (masterUser.indexOf(userid) >= 0) {
+              messageArray.push('-> Bot Owner: **No, but is masteruser.**')
+            } else {
+              messageArray.push('-> Bot Owner: **No**')
+            }
+          }
+          messageArray.push(getAvy(type))
+          bot.createMessage(msg.channel.id, messageArray.join('\n'))
+        }
+      }).catch(() => {
+        bot.createMessage(msg.channel.id, messageArray.join('\n'))
+      })
     }
   },
   youtube: {
@@ -427,6 +487,52 @@ exports.execute = {
       bot.createMessage(msg.channel.id, msgArray.join('\n'))
     }
   },
+  invite: {
+    name: 'Invite',
+    help: 'Gives you my invite, or lets you indentify invites!',
+    usage: '<invite <discord\.gg\/invite>>',
+    lvl: 0,
+    fn: function (bot, msg, suffix) {
+      var matches = new RegExp(/discord\.gg\/([A-Z0-9-]+)/ig).exec(suffix)
+      if (matches !== null) {
+        bot.getInvite(matches[1]).then((invData) => {
+          var invArray = []
+          invArray.push('**Invite detected!**\n')
+          invArray.push('**Invite Code:** ' + invData.code)
+          invArray.push('**Targets to:** ' + invData.guild.name + ' @ ' + invData.channel.name)
+          if (invData.maxAge !== undefined) {
+            invArray.push('**Creation Date:** ' + new Date(invData.createdAt).toLocaleString())
+            invArray.push('**Owner of Invite:** ' + invData.inviter.username + '#' + invData.inviter.discriminator + ' *(ID: ' + invData.inviter.id + ')*')
+            if (invData.revoked) invArray.push('**Revoked:** Yes')
+              if (!invData.revoked) {
+                invArray.push('**Revoked:** No')
+                var days = ''
+                if (Math.abs(invData.maxAge / 60 / 60 / 24) > 0) days = Math.abs(invData.maxAge / 60 / 60 / 24) + ' day(s), ' 
+                if (invData.maxAge !== 0) invArray.push('**Length:** ' + days + Math.abs(invData.maxAge / 60 / 60 % 24) + ' hours, ' + Math.abs(invData.maxAge / 60 % 60) + ' minutes')
+                if (invData.maxAge === 0) invArray.push('**Length:** Permanent')
+              }
+              if (invData.maxUses === 0) invArray.push('**Uses:** ' + invData.uses + ' / ∞')
+              if (invData.maxUses >= 1) invArray.push('**Uses:** ' + invData.uses + ' / ' + invData.maxUses)
+          } else {
+            invArray.push("I can't show more properties of invite, unless I have Manage Server/Channel permission on the specified server!")
+          }
+          bot.createMessage(msg.channel.id, invArray.join('\n'))
+        }).catch((e) => {
+          console.log(e)
+          bot.createMessage(msg.channel.id, '**Sorry!** Unexpected error!')
+        })
+      } if (matches === null) {
+        bot.createMessage(msg.channel.id, '**Sorry!** It seems as you are not giving me the proper invite link! (discord.gg\/inviteCode)')
+      } if (!suffix) {
+        var invite = []
+        invite.push('Hey!\n')
+        invite.push('To invite me to your server, go ahead, and use my OAuth link *(TODO)*.')
+        invite.push('If you want to know when was a specific invite made, use the same command')
+        invite.push('with a discord.gg invite following it!')
+        bot.createMessage(msg.channel.id, invite.join('\n'))
+      }
+    }
+  },
   server: {
     name: 'Server',
     help: 'Tells you about the server you are in!',
@@ -450,7 +556,7 @@ exports.execute = {
         var msgArray = []
         var guild = msg.channel.guild
         var gName = guild.name
-        if (guild.emojis) {
+        if (guild.emojis.length >= 1) {
           for (var i in guild.emojis) {
             if (guild.emojis[i].name === 'TCfreezy') {
               gName = '<:TCfreezy:' + guild.emojis[i].id + '>' + guild.name
@@ -459,25 +565,30 @@ exports.execute = {
         }
         var owner = msg.channel.guild.members.get(guild.ownerID).user
         msgArray.push('==< Information for **' + gName + '** >==\n')
-        msgArray.push('**-> Region:** ' + guild.region)
+        msgArray.push('**-> Region:** ' + guild.region.firstUpperCase())
         msgArray.push('**-> ID:** ' + guild.id)
-        msgArray.push('**-> Owner: ' + owner.username + '**#' + owner.discriminator + ' *(ID: ' + owner.id + ')*')
+        msgArray.push('**-> Owner:** ' + owner.username + '#' + owner.discriminator + ' *(ID: ' + owner.id + ')*')
         msgArray.push('**-> Members:** ' + guild.memberCount)
         msgArray.push('**-> Created at:** ' + new Date(guild.joinedAt))
-        msgArray.push('**-> Default channel:** <#' + guild.defaultChannel.id + '>')
         msgArray.push('**-> Text Channels:** ' + countChannels(0))
         msgArray.push('**-> Voice Channels:** ' + countChannels(2))
-        var k = []
-        if (guild.emojis) {
-          for (var i in guild.emojis) {
-            k.push('<:' + guild.emojis[i].name + ':' + guild.emojis[i].id + '>')
+        if (suffix.toLowerCase() === 'full' || suffix.toLowerCase() === 'all' || suffix.toLowerCase() === 'extend') {
+          msgArray.push('**-> Default channel:** <#' + guild.defaultChannel.id + '>')
+          var k = []
+          console.log(guild.emojis)
+          if (guild.emojis.length >= 1) {
+            for (var i in guild.emojis) {
+              k.push('<:' + guild.emojis[i].name + ':' + guild.emojis[i].id + '>')
+            }
+            msgArray.push('**-> Custom Emojis:** ' + k.join(' '))
           }
-          msgArray.push('**-> Custom Emojis:** ' + k.join(' '))
+          msgArray.push('**-> AFK Timeout:** ' + Math.floor(guild.afkTimeout / 60) + ' minutes')
+          msgArray.push(`**-> Default Notification:** ${guild.defaultNotifications ? 'Only @\u200Bmentions' : 'All messages'}`)
+          msgArray.push('**-> Verification Stage:** ' + verifyStages(guild.verificationLevel))
+          msgArray.push(`**-> Server-wide 2FA:** ${guild.mfaLevel ? 'Enabled' : 'Disabled'}`)
         }
         if (guild.afkChannelID !== null) msgArray.push('**-> AFK Channel:** ' + bot.getChannel(guild.afkChannelID).name)
-        msgArray.push('**-> AFK Timeout:** ' + Math.floor(guild.afkTimeout / 60) + ' minutes')
-        msgArray.push('**-> Verification Stage:** ' + verifyStages(guild.verificationLevel))
-        msgArray.push('**-> Icon:** https://discordapp.com/api/guilds/' + guild.id + '/icons/' + guild.icon + '.jpg')
+        msgArray.push('**-> Icon:** ' + guild.iconURL)
         bot.createMessage(msg.channel.id, msgArray.join('\n'))
       }
     }
@@ -488,7 +599,7 @@ function getCommandsName () { // DIRTY
   var helpArray = []
   helpArray.push('**Commands list**')
   for (var cmd in exports.execute) {
-    cmdArray.push(exports.execute[cmd].name.toLowerCase())
+    cmdArray.push(exports.execute[cmd].name.toLowerCase() + ' - ' + exports.execute[cmd].help)
   }
   helpArray.push(cmdArray.sort().join('\n'))
   helpArray.push("If you'd like to know more about a specific command, please type in `" + prefix + "help commands name`!")
