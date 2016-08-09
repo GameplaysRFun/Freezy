@@ -93,69 +93,115 @@ exports.execute = {
     help: 'Connects me to a voice channel.',
     usage: '<voice youtube_link>',
     lvl: 1,
-    fn: function(bot, msg, suffix) {
-      if (!suffix) {
-        return bot.createMessage(msg.channel.id, "\u200B**Sorry! Couldn't quite get that, what did you want again?**")
-      }
-      if (!msg.member.voiceState.channelID) {
+    fn: function(bot, msg) {
+      if (msg.member.voiceState.channelID === null) {
         bot.createMessage(msg.channel.id, "\u200B**Can't join a voice channel, if you're not in one yourself!**")
       } else if (msg.member.voiceState.selfDeaf|| msg.member.voiceState.deaf) {
         bot.createMessage(msg.channel.id, "\u200B**Sorry, you're either deafened locally or by server, try again when you're not deafened!**")
       } else {
-        bot.joinVoiceChannel(msg.member.voiceState.channelID).then((connection) => {
-          if (connection.playing) {
-            setTimeout(() => {
-              connection.stopPlaying()
-            }, 400)
-          }
-          var infoArray = []
-          var info = ytdl.getInfo(suffix, function (e, info) {
-            if (e) {
-              if (suffix.startsWith('https://www.youtube.com/watch?v=') || suffix.startsWith('https://youtu.be/')) {
-                bot.createMessage(msg.channel.id, '**Something went wrong parsing this video!**')
-                return console.log(e)
-              }
-              if (connection.playing) {
-                return connection.stopPlaying()
-              } else return connection.disconnect()
-            }
-            infoArray.push(info.title)
-            var secs = ''
-            var mins = ''
-            var seczero = ''
-            var minzero = ''
-            var hourzero = ''
-            var hour = ''
-            if (Math.floor(info.length_seconds / 60 % 60) > 0) mins = Math.floor(info.length_seconds / 60 % 60) + ':'
-            if (Math.floor(info.length_seconds % 60)) secs = Math.floor(info.length_seconds % 60)
-            if (Math.floor(info.length_seconds % 60) < 10) seczero = '0'
-            if (Math.floor(info.length_seconds / 60 % 60) < 10 && !Math.floor(info.length_seconds / 60 % 60) < 1) minzero = '0'
-            if (Math.floor(info.length_seconds / 60 / 60)) hour = Math.floor(info.length_seconds / 60 / 60) + ':'
-            if (Math.floor(info.length_seconds / 60 / 60) > 9) hourzero = ''
-            infoArray.push('`[' + hourzero + hour + minzero + mins + seczero + secs + ']`')
-          })
-          var song = ytdl(suffix, {
-            quality: 140
-          })
-          connection.playStream(song)
-          connection.once('err', (e) => {
-            return bot.createMessage(msg.channel.id, '**Encountered an error!**\n\n' + e)
-          })
-          connection.once('end', () => {
-              connection.disconnect()
-              return bot.createMessage(msg.channel.id, 'Finished playing **' + infoArray[0] + '**...')
-          })
-          setTimeout(() => {
-            if (infoArray[0] === undefined) {
-              connection.disconnect()
-              return bot.createMessage(msg.channel.id, '**Sorry, I only accept valid YouTube videos!**')
-            }
-            bot.createMessage(msg.channel.id, `\u200B${infoArray[1]} Playing **${infoArray[0]}** now..`)
-          }, 550)
-        }).catch((e) => {
-          return bot.createMessage(msg.channel.id, '**Someone requested songs too fast, try again!\n\nError:** \n' + e)
+        bot.joinVoiceChannel(msg.member.voiceState.channelID).then(() => {
+          bot.createMessage(msg.channel.id, 'Joined the voice channel you\'re in right now!')
         })
       }
+    }
+  },
+  playlist: {
+    name: 'Playlist',
+    help: 'Shows current playlist.',
+    usage: '<playlist>',
+    lvl: 1,
+    fn: function(bot, msg, suffix) {
+      bot.voiceConnections.forEach((vc) => {
+        if (vc.channelID.indexOf(msg.member.voiceState.channelID) >= 0) {
+          if (vc.queueInfo === undefined) return bot.createMessage(msg.channel.id, '**Currently not queueing anything**')
+          bot.createMessage(msg.channel.id, '**Enqueued songs**\n\n- ' + vc.queueInfo.join('\n- '))
+        }
+      })
+    }
+  },
+  volume: {
+    name: 'Volume',
+    help: 'Sets a song volume.',
+    usage: '<volume %>',
+    lvl: 1,
+    fn: function(bot, msg, suffix) {
+      bot.voiceConnections.forEach((vc) => {
+        if (vc.channelID.indexOf(msg.member.voiceState.channelID) >= 0) {
+          if (!isNaN(parseInt(suffix))) {
+            if (parseInt(suffix) <= 100) {
+              vc.setVolume(Math.abs(parseInt(suffix) / 100))
+              bot.createMessage(msg.channel.id, '**Set the volume of current active stream to ' + parseInt(suffix) + '%!**')
+            } else {
+              bot.createMessage(msg.channel.id, '**Specified percentage is too high!**')
+            }
+          } else return bot.createMessage(msg.channel.id, '**Not a number!** Try using a valid number between 0 and 100!')
+        } else {
+          bot.createMessage(msg.channel.id, '**Not in the voice channel you\'re in!**')
+        }
+      })
+    }
+  },
+  request: {
+    name: 'Request',
+    help: 'Requests a song.',
+    usage: '<request youtube link>',
+    lvl: 1,
+    fn: function(bot, msg, suffix) {
+      bot.voiceConnections.forEach((vc) => {
+        if (vc.channelID.indexOf(msg.member.voiceState.channelID) >= 0) {
+          if (vc.queue === undefined) vc.queue = []
+          if (vc.queueInfo === undefined) vc.queueInfo = []
+          if (vc.queueLength === undefined) vc.queueLength = []
+          if (vc.playing) {
+            ytdl.getInfo(suffix, (e, info) => {
+              if (e) return bot.createMessage(msg.channel.id, 'Unable to queue this song!')
+              vc.queue.push(suffix)
+              vc.queueInfo.push(info.title)
+              var min = Math.floor(info.length_seconds / 60)
+              var sec = Math.floor(info.length_seconds % 60)
+              if (min < 10) min = '0' + Math.floor(info.length_seconds / 60)
+              if (sec < 10) sec = '0' + Math.floor(info.length_seconds % 60)
+              var parsedTime = min + ':' + sec
+              vc.queueLength.push(parsedTime)
+              bot.createMessage(msg.channel.id, 'Requested and enqueued **' + info.title + '** in position **#' + vc.queue.length + '**')
+            })
+          } else {
+            function play (link) {
+              var song = ytdl(link)
+              vc.playStream(song, {inlineVolume: true})
+              if (vc.queueInfo[0] === undefined) {
+                ytdl.getInfo(link, (e, info) => {
+                  if (e) return console.log(e)
+                  var min = Math.floor(info.length_seconds / 60)
+                  var sec = Math.floor(info.length_seconds % 60)
+                  if (min < 10) min = '0' + Math.floor(info.length_seconds / 60)
+                  if (sec < 10) sec = '0' + Math.floor(info.length_seconds % 60)
+                  var parsedTime = min + ':' + sec
+                  bot.createMessage(msg.channel.id, '`[' + parsedTime + ']` Now playing **' + info.title + '**...')
+                })
+              } else {
+                var next = ''
+                if (vc.queueInfo.length > 1) next = '\nUp next in the queue is **' + vc.queueInfo[1] + '**...'
+                bot.createMessage(msg.channel.id, '`[' + vc.queueLength[0] + ']` Now playing **' + vc.queueInfo[0] + '**...' + next)
+              }
+              song.on('end', () => {
+                if (vc.queue.length > 0) {
+                  play(vc.queue[0])
+                  vc.queueInfo.splice(0, 1)
+                  vc.queueLength.splice(0, 1)
+                  return vc.queue.splice(0, 1)
+                } else {
+                  vc.disconnect()
+                  return bot.createMessage(msg.channel.id, 'All songs in the queue have been played, leaving voice channel!')
+                }
+              })
+            }
+            play(suffix)
+          }
+        } else {
+          bot.createMessage(msg.channel.id, '**Not in the voice channel you\'re in!**')
+        }
+      })
     }
   },
   setlevel: {
