@@ -9,9 +9,7 @@ var masterUser = config.perms.masterUsers
 var stacktrace = config.config.stacktrace
 var shards = config.config.shards
 var prefix = config.config.prefix
-var oauth = config.login.oauth
-var bot = new Eris(token, {maxShards: shards, lastShardID: shards - 1, userAccount: oauth})
-
+var bot = new Eris(token, {maxShards: shards})
 /*
 * Functions corner
 * Used to set prototype functions
@@ -25,6 +23,7 @@ String.prototype.replaceAll = function (target, replacement) {
 if (prefix === '>') {
   Logger.warn(`You're using the default '${prefix}' prefix for your bot, consider changing it!`)
 }
+if (!bot.bot) Logger.warn(`Not a OAuth application! Consider using OAuth application, unless it's a private selfbot!`)
 var startup = new Date()
 Logger.log(`Loading Freezy ${pkg.version}...`)
 bot.on('shardReady', (id) => {
