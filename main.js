@@ -23,7 +23,6 @@ String.prototype.replaceAll = function (target, replacement) {
 if (prefix === '>') {
   Logger.warn(`You're using the default '${prefix}' prefix for your bot, consider changing it!`)
 }
-if (!bot.bot) Logger.warn(`Not a OAuth application! Consider using OAuth application, unless it's a private selfbot!`)
 var startup = new Date()
 Logger.log(`Loading Freezy ${pkg.version}...`)
 bot.on('shardReady', (id) => {
@@ -35,6 +34,7 @@ bot.on('ready', () => {
   bot.shards.forEach((shard) => {
     shard.editGame({name: pkg.version + ` | Shard ${shard.id + 1} of ${shards}!`, type: 1, url: 'https://twitch.tv//'})
   })
+  if (!bot.bot) Logger.warn(`Not a OAuth application! Consider using OAuth application, unless it's a private selfbot!`)
   Logger.log(`Logged in as ${bot.user.username}#${bot.user.discriminator} (ID: ${bot.user.id})`)
   Logger.log(`Startup took ${ready}ms.`)
 })
