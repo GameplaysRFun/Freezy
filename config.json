@@ -6,7 +6,8 @@
         "prefix": ">",
         "suggest": "your suggestion channel id",
         "shards": 3,
-        "stacktrace": false
+        "stacktrace": false,
+        "discordbots": false
     },
     "server": {
         "id": "your bot's server id",
@@ -19,6 +20,7 @@
     },
     "keys": {
         "ytapi": "youtube v3 api key",
-        "cse": "cse key"
+        "cse": "cse key",
+        "discordbots": "your discord bots api key"
     }
 }
