@@ -9,13 +9,55 @@ var masterUser = config.perms.masterUsers
 var stacktrace = config.config.stacktrace
 var shards = config.config.shards
 var prefix = config.config.prefix
-var bot = new Eris(token, {maxShards: shards})
+var bot = new Eris(token, {maxShards: shards, disableEvents: {'TYPING_START': true, 'PRESENCE_UPDATE': true}})
+bot.vc = []
 /*
 * Functions corner
 * Used to set prototype functions
 * which can be used everywhere
 * in the file
 */
+function discordBotsUpdate (auth) {
+  if (config.config.discordbots) {
+    var postData = {}
+    var appid = ''
+    if (bot.bot) {
+      bot.getOAuthApplication().then((oauth) => {
+        appid = oauth.id
+      })
+    } else {
+      appid = bot.user.id
+    }
+    var request = require('request')
+    function post () {
+      return request({
+        method: 'POST',
+        json: true,
+        url: 'https://bots.discord.pw/api/bots/' + appid + '/stats',
+        headers: {
+          'content-type': "application/json",
+          'Authorization': config.keys.discordbots
+        },
+        body: postData
+      })
+    }
+    if (shards >= 2) {
+      bot.shards.forEach((shard) => {
+        postData = {
+          "shard_id": shard.id,
+          "shard_count": shards,
+          "server_count":  shard.guildCount
+        }
+        post()
+      })
+    } else {
+      bot.shards.forEach((shard) => {
+        postData['server_count'] = shard.guildCount
+        post()
+      })
+    }
+  }
+}
 String.prototype.replaceAll = function (target, replacement) {
   return this.split(target).join(replacement)
 }
@@ -30,6 +72,7 @@ bot.on('shardReady', (id) => {
   Logger.log(`Shard #${id + 1} is ready! Time taken so far ${ready}ms.`)
 })
 bot.on('ready', () => {
+  discordBotsUpdate()
   var ready = new Date() - startup
   bot.shards.forEach((shard) => {
     shard.editGame({name: pkg.version + ` | Shard ${shard.id + 1} of ${shards}!`, type: 1, url: 'https://twitch.tv//'})
@@ -84,9 +127,11 @@ bot.on('messageCreate', (msg) => {
 })
 
 bot.on('guildCreate', (guild) => {
+  discordBotsUpdate()
   db.guildCreation(guild.id, guild.ownerID)
 })
 bot.on('guildDelete', (guild) => {
+  discordBotsUpdate()
   db.guildDeletion(guild.id)
 })
 bot.on('guildMemberAdd', (guild, member) => {
