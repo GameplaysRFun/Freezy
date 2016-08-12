@@ -99,13 +99,16 @@ bot.on('messageCreate', (msg) => {
       var suffix = base.substr(stub[0].length + 1)
       try {
         var lvl = cmd.execute[name].lvl
-        if (msg.channel.guild || masterUser.indexOf(msg.author.id) >= 0) {
+        if (msg.channel.guild) {
           if (lvl >= 1) {
             db.checkIfLvl(msg.channel.guild.id, msg.author.id, lvl).then((pass) => {
               if (pass < lvl) return bot.createMessage(msg.channel.id, "You don't have sufficient permissions!\nThis command requires level " + lvl + ", but you have level " + pass)
               if (pass >= lvl) {
                 cmd.execute[name].fn(bot, msg, suffix)
               }
+            }).catch(() => {
+              bot.createMessage(msg.channel.id, 'Detected missing database entry.. **Fixing it!**\nFeel free to use me again!')
+              db.guildCreation(msg.channel.guild.id, msg.channel.guild.ownerID)
             })
           } else {
             cmd.execute[name].fn(bot, msg, suffix)
@@ -116,10 +119,12 @@ bot.on('messageCreate', (msg) => {
         Logger.log(`${msg.author.username} executed <${stub.join(' ')}>`)
       } catch (e) {
         Logger.error(`${msg.author.username} attempt to execute <${stub.join(' ')}>`)
-        if (stacktrace) {
-          Logger.error(`Stacktrace: ${e.stack}`)
-        } if (!stacktrace) {
-          Logger.error(`Error: ${e}`)
+        if (cmd.execute[name] !== null) {
+          if (stacktrace) {
+            Logger.error(`Stacktrace: ${e.stack}`)
+          } if (!stacktrace) {
+            Logger.error(`Error: ${e}`)
+          }
         }
       }
     }
