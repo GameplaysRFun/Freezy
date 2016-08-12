@@ -546,7 +546,7 @@ exports.execute = {
           invArray.push('**Invite detected!**\n')
           invArray.push('**Invite Code:** ' + invData.code)
           invArray.push('**Targets to:** ' + invData.guild.name + ' @ ' + invData.channel.name)
-          if (invData.maxAge !== undefined) {
+          if (invData.maxAge !== null) {
             invArray.push('**Creation Date:** ' + new Date(invData.createdAt).toLocaleString())
             invArray.push('**Owner of Invite:** ' + invData.inviter.username + '#' + invData.inviter.discriminator + ' *(ID: ' + invData.inviter.id + ')*')
             if (invData.revoked) invArray.push('**Revoked:** Yes')
