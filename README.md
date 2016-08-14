@@ -6,8 +6,8 @@ NOTE! Freezy uses Eris development build, to get it, type in `npm install abalab
 [![Node](https://img.shields.io/badge/Node-5.x.x-green.svg)](http://nodejs.org)
 [![NPM](https://img.shields.io/badge/NPM-3.x.x-blue.svg)](http://nodejs.org)
 [![License](https://img.shields.io/badge/License-GPL--3.0-blue.svg)]()
-[![Version](https://img.shields.io/badge/Version-1.0.3-green.svg)]()
-[![Status](https://img.shields.io/badge/Status-Stable_(except_voice)-green.svg)]()
+[![Version](https://img.shields.io/badge/Version-1.0.4-green.svg)]()
+[![Status](https://img.shields.io/badge/Status-Stable-green.svg)]()
 ## Getting started
 First up open the config.json file, it should look something like this;
 ```json
@@ -19,7 +19,8 @@ First up open the config.json file, it should look something like this;
         "prefix": ">",
         "suggest": "your suggestion channel id",
         "shards": 3,
-        "stacktrace": false
+        "stacktrace": false,
+        "discordbots": false
     },
     "server": {
         "id": "your bot's server id",
@@ -32,7 +33,8 @@ First up open the config.json file, it should look something like this;
     },
     "keys": {
         "ytapi": "youtube v3 api key",
-        "cse": "cse key"
+        "cse": "cse key",
+        "discordbots": "discord bots API key"
     }
 }
 
@@ -43,5 +45,7 @@ Once you've done that, you're probably wondering, "Well, then, how do I run it!?
 UPDATE: As of v1.0.1, you'll have to configure the `"suggest": "your suggestion channel id",` for sure, if you don't want crashes when someone uses `>suggest`! The `"server": {` section is optional, only useful if you plan to have a official server for it, like we do.
 
 UPDATE: As of v1.0.2, if you want to use YouTube search related features, get a YouTube v3 API key and put it to the `"ytapi":` slot.
+
+UPDATE: If you have any keys to places like Discord Bots, configure them in config, they're easy to understand (or should be)!
 
 [![Discord](https://discordapp.com/api/servers/206431108047437824/widget.png?style=banner3)](https://discord.gg/ZKA7sE8)
