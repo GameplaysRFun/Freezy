@@ -10,7 +10,11 @@ var stacktrace = config.config.stacktrace
 var shards = config.config.shards
 var prefix = config.config.prefix
 var bot = new Eris(token, {maxShards: shards, disableEvents: {'TYPING_START': true, 'PRESENCE_UPDATE': true}})
+var appid = ''
 bot.vc = []
+bot.getOAuthApplication().then((oauth) => {
+  appid = oauth.id
+})
 /*
 * Functions corner
 * Used to set prototype functions
@@ -20,14 +24,6 @@ bot.vc = []
 function discordBotsUpdate (auth) {
   if (config.config.discordbots) {
     var postData = {}
-    var appid = ''
-    if (bot.bot) {
-      bot.getOAuthApplication().then((oauth) => {
-        appid = oauth.id
-      })
-    } else {
-      appid = bot.user.id
-    }
     var request = require('request')
     function post () {
       return request({
@@ -48,6 +44,7 @@ function discordBotsUpdate (auth) {
           "shard_count": shards,
           "server_count":  shard.guildCount
         }
+        
         post()
       })
     } else {
@@ -56,6 +53,9 @@ function discordBotsUpdate (auth) {
         post()
       })
     }
+    setTimeout(() => {
+      return Logger.post('Discord Bots - Sent')
+    }, 1000) // Ensures POST request is done
   }
 }
 String.prototype.replaceAll = function (target, replacement) {
@@ -72,6 +72,7 @@ bot.on('shardReady', (id) => {
   Logger.log(`Shard #${id + 1} is ready! Time taken so far ${ready}ms.`)
 })
 bot.on('ready', () => {
+  appid = bot.user.id
   discordBotsUpdate()
   var ready = new Date() - startup
   bot.shards.forEach((shard) => {
@@ -114,12 +115,22 @@ bot.on('messageCreate', (msg) => {
             cmd.execute[name].fn(bot, msg, suffix)
           }
         } else {
-          bot.createMessage(msg.channel.id, "Can't do this at Direct Messages, silly!")
+          var globallvl = 0
+          if (msg.author.id.indexOf(masterUser)) globallvl = 9 
+          if (lvl <= globallvl) {
+            if (!cmd.execute[name].guildOnly) {
+              cmd.execute[name].fn(bot, msg, suffix)
+            } else {
+              bot.createMessage(msg.channel.id, 'To prevent any crashes via DM, the following command is only available for use in servers!')
+            }
+          } else {
+            bot.createMessage(msg.channel.id, "You don't have sufficient permissions!\nThis command requires level " + lvl + ", but you have level " + globallvl)
+          }
         }
         Logger.log(`${msg.author.username} executed <${stub.join(' ')}>`)
       } catch (e) {
-        Logger.error(`${msg.author.username} attempt to execute <${stub.join(' ')}>`)
-        if (cmd.execute[name] !== null) {
+        if (cmd.execute[name] !== undefined) {
+          Logger.error(`${msg.author.username} attempted to execute <${stub.join(' ')}>`)
           if (stacktrace) {
             Logger.error(`Stacktrace: ${e.stack}`)
           } if (!stacktrace) {
