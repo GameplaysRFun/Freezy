@@ -18,7 +18,7 @@ var masterUser = config.perms.masterUsers
 String.prototype.replaceAll = function (target, replacement) {
   return this.split(target).join(replacement)
 }
-String.prototype.firstUpperCase = function() {
+String.prototype.firstUpperCase = function () {
     return this.charAt(0).toUpperCase() + this.substring(1);
 }
 // Commands
@@ -27,8 +27,9 @@ exports.execute = {
     name: 'Ping',
     help: 'Ping Pong!',
     usage: '<ping>',
+    guildOnly: false,
     lvl: 0,
-    fn: function(bot, msg, suffix) {
+    fn: function (bot, msg, suffix) {
       var pingArray = ['Ping!', 'Peng!', 'Pang!', 'Pong!', 'Poot!', 'Noot!']
       var random = Math.floor(pingArray.length * Math.random())
       if (random > pingArray.length) {
@@ -46,8 +47,9 @@ exports.execute = {
     name: 'Leave',
     help: 'Leaves the server, if unable to do it somehow else.',
     usage: '<leave>',
+    guildOnly: true,
     lvl: 4,
-    fn: function(bot, msg, suffix) {
+    fn: function (bot, msg, suffix) {
       bot.leaveGuild(msg.channel.guild.id)
     }
   },
@@ -55,6 +57,7 @@ exports.execute = {
     name: 'Assign',
     help: 'Assigns something. Developer exclusive.',
     usage: '<assign parameter @\u200Bmention>',
+    guildOnly: true,
     lvl: 9,
     fn: function (bot, msg, suffix) {
       var status = config.server.enabled
@@ -67,15 +70,22 @@ exports.execute = {
           var args = base.split(' ')
           var params = ['contributor', 'staff']
           if (args[0].toLowerCase() === params[0] && msg.mentions.length === 1) {
-            bot.editGuildMember(official, msg.mentions[0].id, {roles: [contributor]})
-            db.setAchievement(msg.mentions[0].id, params[0], true)
-            bot.createMessage(msg.channel.id, msg.mentions[0].username + ' is now a <@&' + contributor + '>!')
+            if (args[1].toLowerCase() === 'promote') {
+              bot.editGuildMember(official, msg.mentions[0].id, {roles: [contributor]})
+              bot.createMessage(msg.channel.id, msg.mentions[0].username + ' is now a <@&' + contributor + '>!')
+            } else {
+              bot.createMessage(msg.channel.id, msg.mentions[0].username + ' is now either demoted or a contributor!')
+            }
+            db.setAchievement(msg.mentions[0].id, params[0])
           }
           if (args[0].toLowerCase() === params[1] && msg.mentions.length === 1) {
-            bot.editGuildMember(official, msg.mentions[0].id, {roles: [staff]})
-            db.setAchievement(msg.mentions[0].id, params[0], true)
-            db.setAchievement(msg.mentions[0].id, params[1], true)
-            bot.createMessage(msg.channel.id, msg.mentions[0].username + ' is now a <@&' + staff + '> member!')
+            if (args[1].toLowerCase() === 'promote') {
+              bot.editGuildMember(official, msg.mentions[0].id, {roles: [staff]})
+              bot.createMessage(msg.channel.id, msg.mentions[0].username + ' is now a <@&' + staff + '> member!')
+            } else {
+              bot.createMessage(msg.channel.id, msg.mentions[0].username + ' is now either demoted or a staff member!')
+            }
+            db.setAchievement(msg.mentions[0].id, params[1])
           }
           if (msg.mentions.length !== 1 && params.indexOf(args[0]) <= -1) {
             bot.createMessage(msg.channel.id, "Are you certain, that you're using me properly? Try again.")
@@ -92,15 +102,34 @@ exports.execute = {
     name: 'Voice',
     help: 'Connects me to a voice channel.',
     usage: '<voice youtube_link>',
+    guildOnly: true,
     lvl: 1,
-    fn: function(bot, msg) {
+    fn: function (bot, msg) {
+      bot.voiceConnections.forEach((vc) => {
+        if (msg.member.voiceState.channelID.indexOf(vc.channelID) >= 0) {
+          return bot.createMessage(msg.channel.id, 'Already in the voice channel!')
+        }
+      })
       if (msg.member.voiceState.channelID === null) {
         bot.createMessage(msg.channel.id, "\u200B**Can't join a voice channel, if you're not in one yourself!**")
       } else if (msg.member.voiceState.selfDeaf|| msg.member.voiceState.deaf) {
         bot.createMessage(msg.channel.id, "\u200B**Sorry, you're either deafened locally or by server, try again when you're not deafened!**")
       } else {
-        bot.joinVoiceChannel(msg.member.voiceState.channelID).then(() => {
-          bot.createMessage(msg.channel.id, 'Joined the voice channel you\'re in right now!')
+        var k = msg.member.voiceState.channelID
+        bot.joinVoiceChannel(msg.member.voiceState.channelID).then((conn) => {
+          bot.createMessage(msg.channel.id, 'Joined the voice channel you\'re in right now! You have time until the wait music ends to request something!')
+          var songg = ytdl('https://www.youtube.com/watch?v=fgf7cUHiCj8')
+          conn.playStream(songg)
+          songg.once('end', () => {
+            bot.voiceConnections.forEach((vc) => {
+              if (k.indexOf(vc.channelID) >= 0) {
+                if (!vc.playing) {
+                  conn.disconnect()
+                  bot.createMessage(msg.channel.id, 'No songs have been requested in time, leaving voice channel!')
+                }
+              }
+            })
+          })
         })
       }
     }
@@ -109,11 +138,12 @@ exports.execute = {
     name: 'Playlist',
     help: 'Shows current playlist.',
     usage: '<playlist>',
+    guildOnly: true,
     lvl: 1,
-    fn: function(bot, msg, suffix) {
+    fn: function (bot, msg, suffix) {
       bot.voiceConnections.forEach((vc) => {
-        if (vc.channelID.indexOf(msg.member.voiceState.channelID) >= 0) {
-          if (vc.queueInfo === undefined) return bot.createMessage(msg.channel.id, '**Currently not queueing anything**')
+        if (msg.member.voiceState.channelID.indexOf(vc.channelID) >= 0) {
+          if (vc.queueInfo[0] === undefined) return bot.createMessage(msg.channel.id, '**Currently not queueing anything**')
           bot.createMessage(msg.channel.id, '**Enqueued songs**\n\n- ' + vc.queueInfo.join('\n- '))
         }
       })
@@ -123,10 +153,11 @@ exports.execute = {
     name: 'Volume',
     help: 'Sets a song volume.',
     usage: '<volume %>',
+    guildOnly: true,
     lvl: 1,
-    fn: function(bot, msg, suffix) {
+    fn: function (bot, msg, suffix) {
       bot.voiceConnections.forEach((vc) => {
-        if (vc.channelID.indexOf(msg.member.voiceState.channelID) >= 0) {
+        if (msg.member.voiceState.channelID.indexOf(vc.channelID) >= 0) {
           if (!isNaN(parseInt(suffix))) {
             if (parseInt(suffix) <= 100) {
               vc.setVolume(Math.abs(parseInt(suffix) / 100))
@@ -145,14 +176,16 @@ exports.execute = {
     name: 'Request',
     help: 'Requests a song.',
     usage: '<request youtube link>',
+    guildOnly: true,
     lvl: 1,
-    fn: function(bot, msg, suffix) {
+    fn: function (bot, msg, suffix) {
       bot.voiceConnections.forEach((vc) => {
-        if (vc.channelID.indexOf(msg.member.voiceState.channelID) >= 0) {
+        if (msg.member.voiceState.channelID.indexOf(vc.channelID) > -1) {
           if (vc.queue === undefined) vc.queue = []
           if (vc.queueInfo === undefined) vc.queueInfo = []
           if (vc.queueLength === undefined) vc.queueLength = []
-          if (vc.playing) {
+          if (vc.queueRequired === undefined) vc.queueRequired === false
+          if (vc.playing && vc.queueRequired) {
             ytdl.getInfo(suffix, (e, info) => {
               if (e) return bot.createMessage(msg.channel.id, 'Unable to queue this song!')
               vc.queue.push(suffix)
@@ -166,12 +199,14 @@ exports.execute = {
               bot.createMessage(msg.channel.id, 'Requested and enqueued **' + info.title + '** in position **#' + vc.queue.length + '**')
             })
           } else {
+            var song = ''
             function play (link) {
-              var song = ytdl(link)
-              vc.playStream(song, {inlineVolume: true})
-              if (vc.queueInfo[0] === undefined) {
+              vc.queueRequired = true
+              song = ytdl(link)
+              vc.playStream(song, {inlineVolume: false})
+              if (vc.queueLength < 1) {
                 ytdl.getInfo(link, (e, info) => {
-                  if (e) return console.log(e)
+                  if (e) return bot.createMessage(msg.channel.id, 'Encountered an error in parsing the video!')
                   var min = Math.floor(info.length_seconds / 60)
                   var sec = Math.floor(info.length_seconds % 60)
                   if (min < 10) min = '0' + Math.floor(info.length_seconds / 60)
@@ -184,13 +219,14 @@ exports.execute = {
                 if (vc.queueInfo.length > 1) next = '\nUp next in the queue is **' + vc.queueInfo[1] + '**...'
                 bot.createMessage(msg.channel.id, '`[' + vc.queueLength[0] + ']` Now playing **' + vc.queueInfo[0] + '**...' + next)
               }
-              song.on('end', () => {
+              song.once('end', () => {
                 if (vc.queue.length > 0) {
                   play(vc.queue[0])
-                  vc.queueInfo.splice(0, 1)
-                  vc.queueLength.splice(0, 1)
-                  return vc.queue.splice(0, 1)
+                  vc.queueInfo.shift()
+                  vc.queueLength.shift()
+                  return vc.queue.shift()
                 } else {
+                  vc.queueRequired = false
                   vc.disconnect()
                   return bot.createMessage(msg.channel.id, 'All songs in the queue have been played, leaving voice channel!')
                 }
@@ -199,7 +235,9 @@ exports.execute = {
             play(suffix)
           }
         } else {
-          bot.createMessage(msg.channel.id, '**Not in the voice channel you\'re in!**')
+          if (vc.id === msg.channel.guild.id) {
+            bot.createMessage(msg.channel.id, '**Not in the voice channel you\'re in!**')
+          }
         }
       })
     }
@@ -208,8 +246,9 @@ exports.execute = {
     name: 'Setlevel',
     help: 'Sets someone permission level.',
     usage: '<setlevel @\u200Bmention level>',
+    guildOnly: true,
     lvl: 3,
-    fn: function(bot, msg, suffix) {
+    fn: function (bot, msg, suffix) {
       var base = suffix
       var userid = false
       if (msg.mentions.length === 1) {
@@ -230,22 +269,20 @@ exports.execute = {
     name: 'Owner',
     help: 'Checks if you have server owner permissions!',
     usage: '<owner>',
+    guildOnly: true,
     lvl: 4,
-    fn: function(bot, msg, suffix) {
-      if (msg.channel.guild) {
-        if (masterUser.indexOf(msg.author.id) >= 0) return bot.createMessage(msg.channel.id, 'You have masteruser permissions.')
-        bot.createMessage(msg.channel.id, 'You have level 4 permissions.')
-      } else {
-        bot.createMessage(msg.channel.id, "You can't do this at Direct Messages, silly!")
-      }
+    fn: function (bot, msg, suffix) {
+      if (masterUser.indexOf(msg.author.id) >= 0) return bot.createMessage(msg.channel.id, 'You have masteruser permissions.')
+      bot.createMessage(msg.channel.id, 'You have level 4 permissions.')
     }
   },
   customize: { // DIRTY! Needs rework later.
     name: 'Customize',
     help: 'Customizes the server preferences',
     usage: '<customize option value>',
+    guildOnly: true,
     lvl: 3,
-    fn: function(bot, msg, suffix) {
+    fn: function (bot, msg, suffix) {
       var settings = ['welcoming', 'welcome_message', 'farewell_message']
       var args = ['${user}', '${guild}']
       var enable = ['on', 'true', 'enable']
@@ -282,7 +319,8 @@ exports.execute = {
     help: 'Evaluates code. Developer exclusive!',
     usage: '<eval javaScript_code>',
     lvl: 9,
-    fn: function(bot, msg, suffix) {
+    guildOnly: false,
+    fn: function (bot, msg, suffix) {
         bot.createMessage(msg.channel.id, '\u200B**Evaluating...**').then((message) => {
           try {
             var result = eval(suffix) // eslint-disable-line
@@ -290,7 +328,7 @@ exports.execute = {
               bot.editMessage(msg.channel.id, message.id, `**Result:**\n${result}`)
             }
           } catch (e) {
-            bot.editMessage(msg.channel.id, message.id, `**Result:**\n${e}`)
+            bot.editMessage(msg.channel.id, message.id, `**Result:**\n\`\`\`js${e.stack}\`\`\``)
           }
         })
     }
@@ -300,16 +338,21 @@ exports.execute = {
     help: 'The command you are using right now!',
     usage: '<help command_name>',
     lvl: 0,
-    fn: function(bot, msg, suffix) {
+    guildOnly: false,
+    fn: function (bot, msg, suffix) {
       if (!suffix) { // DIRTY
         bot.getDMChannel(msg.author.id).then((DMChannel) => {
           if (msg.channel.guild) bot.createMessage(msg.channel.id, '**Sent you a direct message of my commands!**')
           bot.createMessage(DMChannel.id, getCommandsName())
+        }).catch((e) => {
+          bot.createMessage(msg.channel.id, 'ERROR recieving DM Channel:\n' + e.stack)
         })
       } else {
         bot.getDMChannel(msg.author.id).then((DMChannel) => {
           if (msg.channel.guild) bot.createMessage(msg.channel.id, '**Sent you a direct message of what you requested!**')
           bot.createMessage(DMChannel.id, getCommandsHelp(suffix))
+        }).catch((e) => {
+          bot.createMessage(msg.channel.id, 'ERROR recieving DM Channel:\n' + e.stack)
         })
       }
     }
@@ -319,7 +362,8 @@ exports.execute = {
     help: 'Displays user achievements.',
     usage: '<achievements>',
     lvl: 0,
-    fn: function(bot, msg, suffix) {
+    guildOnly: false,
+    fn: function (bot, msg, suffix) {
       var achieveArray = []
       db.checkAchievement(msg.author.id, 'staff').then((ok) => {
         achieveArray.push(':eyes: **Staff**')
@@ -341,7 +385,8 @@ exports.execute = {
     help: 'Just saying hi is nice! Freezy does not have many friends...',
     usage: '<hi>',
     lvl: 0,
-    fn: function(bot, msg, suffix) {
+    guildOnly: false,
+    fn: function (bot, msg, suffix) {
       var sentences = ['Oh... Hello! I did not see you there... Probably because i am a bot.', 'Well hello there little fellow! Do you want some candy and com in my van?', 'I am not allowed to talk to strangers from my creator! I am sorry...', 'Hmm... Do you want to build a snowman? If not... I dont like you >:(']
       var random = Math.floor((Math.random() * sentences.length))
       if (random > sentences.length) {
@@ -354,8 +399,9 @@ exports.execute = {
     name: 'Suggest',
     help: 'You have a great idea for the bot? This command sends that idea to the devs!',
     usage: 'suggest idea',
+    guildOnly: false,
     lvl: 0,
-      fn: function(bot, msg, suffix) {
+      fn: function (bot, msg, suffix) {
       var date = new Date(msg.timestamp)
       if (!suffix) {
         bot.createMessage(msg.channel.id, 'You need to add a suggestion first!')
@@ -369,8 +415,9 @@ exports.execute = {
     name: 'Ban',
     help: 'This command is meant for server staff to ban people.',
     usage: '<ban @\u200Bmention (days)>',
+    guildOnly: true,
     lvl: 0,
-      fn: function(bot, msg, suffix) {
+      fn: function (bot, msg, suffix) {
         var base = suffix
         var stub = base.split(' ')
         if (msg.member.permission.json['banMembers']) {
@@ -390,8 +437,9 @@ exports.execute = {
     name: 'Kick',
     help: 'This command is meant for server staff to kick people.',
     usage: '<kick @\u200Bmention>',
+    guildOnly: true,
     lvl: 0,
-      fn: function(bot, msg, suffix) {
+      fn: function (bot, msg, suffix) {
         if (msg.member.permission.json['kickMembers']) {
           if (msg.mentions.length === 1) {
             bot.deleteGuildMember(msg.channel.guild.id, msg.mentions[0].id)
@@ -406,8 +454,9 @@ exports.execute = {
     name: 'Userinfo',
     help: 'You need seme info about yourself or someone else? Then this is the command you need!',
     usage: '<userinfo mention>',
+    guildOnly: true,
     lvl: 0,
-    fn: function(bot, msg, suffix) {
+    fn: function (bot, msg, suffix) {
       function checkGame (type, game) {
         return `${type ? 'Playing: ' : 'Streaming: '}**${game}**`
       }
@@ -492,8 +541,9 @@ exports.execute = {
     name: 'Youtube',
     help: 'If you want to search videos quickly via Discord, use this command!',
     usage: '<youtube <search query>>',
+    guildOnly: false,
     lvl: 0,
-    fn: function(bot, msg, suffix) {
+    fn: function (bot, msg, suffix) {
       YouTube.search(suffix, 4, function(error, result) {
         if (error) {
           console.log(error)
@@ -515,8 +565,9 @@ exports.execute = {
     name: 'Info',
     help: 'Tells you about me!',
     usage: '<info>',
+    guildOnly: false,
     lvl: 0,
-    fn: function(bot, msg, suffix) {
+    fn: function (bot, msg, suffix) {
       var gc = []
       bot.guilds.forEach((guild) => {
         gc.push(guild.name)
@@ -537,6 +588,7 @@ exports.execute = {
     name: 'Invite',
     help: 'Gives you my invite, or lets you indentify invites!',
     usage: '<invite <discord\.gg\/invite>>',
+    guildOnly: false,
     lvl: 0,
     fn: function (bot, msg, suffix) {
       var matches = new RegExp(/discord\.gg\/([A-Z0-9-]+)/ig).exec(suffix)
@@ -567,15 +619,22 @@ exports.execute = {
           console.log(e)
           bot.createMessage(msg.channel.id, '**Sorry!** Unexpected error!')
         })
-      } if (matches === null) {
-        bot.createMessage(msg.channel.id, '**Sorry!** It seems as you are not giving me the proper invite link! (discord.gg\/inviteCode)')
-      } if (!suffix) {
+      } else {
         var invite = []
+        var authlink = ''
         invite.push('Hey!\n')
-        invite.push('To invite me to your server, go ahead, and use my OAuth link *(TODO)*.')
-        invite.push('If you want to know when was a specific invite made, use the same command')
-        invite.push('with a discord.gg invite following it!')
-        bot.createMessage(msg.channel.id, invite.join('\n'))
+        bot.getOAuthApplication().then((data) => {
+          authlink = ' https://discordapp.com/oauth2/authorize?client_id=' + data.id + '&scope=bot'
+        }).catch(() => {
+          authlink = ' (user accounts do not have, their owner must join servers manually!)'
+        })
+        setTimeout(() => {
+          invite.push(`To invite me to your server, go ahead, and use my OAuth link${authlink}.`)
+          invite.push('(If that did not work, then the bot is most likely set on private)')
+          invite.push('If you want to know metadata of invites, use the same command')
+          invite.push('with a discord.gg invite following it!')
+          bot.createMessage(msg.channel.id, invite.join('\n'))
+        }, 200)
       }
     }
   },
@@ -583,8 +642,9 @@ exports.execute = {
     name: 'Server',
     help: 'Tells you about the server you are in!',
     usage: '<server>',
+    guildOnly: true,
     lvl: 0,
-    fn: function(bot, msg, suffix) {
+    fn: function (bot, msg, suffix) {
       function verifyStages (lvl) {
         if (lvl === 0) return 'None'
         if (lvl === 1) return 'Low'
@@ -598,45 +658,43 @@ exports.execute = {
         })
         return w.length
       }
-      if (msg.channel.guild) {
-        var msgArray = []
-        var guild = msg.channel.guild
-        var gName = guild.name
+      var msgArray = []
+      var guild = msg.channel.guild
+      var gName = guild.name
+      if (guild.emojis.length >= 1) {
+        for (var i in guild.emojis) {
+          if (guild.emojis[i].name === 'TCfreezy') {
+            gName = '<:TCfreezy:' + guild.emojis[i].id + '>' + guild.name
+          }
+        }
+      }
+      var owner = msg.channel.guild.members.get(guild.ownerID).user
+      msgArray.push('==< Information for **' + gName + '** >==\n')
+      msgArray.push('**-> Region:** ' + guild.region.firstUpperCase())
+      msgArray.push('**-> ID:** ' + guild.id)
+      msgArray.push('**-> Owner:** ' + owner.username + '#' + owner.discriminator + ' *(ID: ' + owner.id + ')*')
+      msgArray.push('**-> Members:** ' + guild.memberCount)
+      msgArray.push('**-> Created at:** ' + new Date(guild.joinedAt))
+      msgArray.push('**-> Text Channels:** ' + countChannels(0))
+      msgArray.push('**-> Voice Channels:** ' + countChannels(2))
+      if (suffix.toLowerCase() === 'full' || suffix.toLowerCase() === 'all' || suffix.toLowerCase() === 'extend') {
+        msgArray.push('**-> Default channel:** <#' + guild.defaultChannel.id + '>')
+        var k = []
+        console.log(guild.emojis)
         if (guild.emojis.length >= 1) {
           for (var i in guild.emojis) {
-            if (guild.emojis[i].name === 'TCfreezy') {
-              gName = '<:TCfreezy:' + guild.emojis[i].id + '>' + guild.name
-            }
+            k.push('<:' + guild.emojis[i].name + ':' + guild.emojis[i].id + '>')
           }
+          msgArray.push('**-> Custom Emojis:** ' + k.join(' '))
         }
-        var owner = msg.channel.guild.members.get(guild.ownerID).user
-        msgArray.push('==< Information for **' + gName + '** >==\n')
-        msgArray.push('**-> Region:** ' + guild.region.firstUpperCase())
-        msgArray.push('**-> ID:** ' + guild.id)
-        msgArray.push('**-> Owner:** ' + owner.username + '#' + owner.discriminator + ' *(ID: ' + owner.id + ')*')
-        msgArray.push('**-> Members:** ' + guild.memberCount)
-        msgArray.push('**-> Created at:** ' + new Date(guild.joinedAt))
-        msgArray.push('**-> Text Channels:** ' + countChannels(0))
-        msgArray.push('**-> Voice Channels:** ' + countChannels(2))
-        if (suffix.toLowerCase() === 'full' || suffix.toLowerCase() === 'all' || suffix.toLowerCase() === 'extend') {
-          msgArray.push('**-> Default channel:** <#' + guild.defaultChannel.id + '>')
-          var k = []
-          console.log(guild.emojis)
-          if (guild.emojis.length >= 1) {
-            for (var i in guild.emojis) {
-              k.push('<:' + guild.emojis[i].name + ':' + guild.emojis[i].id + '>')
-            }
-            msgArray.push('**-> Custom Emojis:** ' + k.join(' '))
-          }
-          msgArray.push('**-> AFK Timeout:** ' + Math.floor(guild.afkTimeout / 60) + ' minutes')
-          msgArray.push(`**-> Default Notification:** ${guild.defaultNotifications ? 'Only @\u200Bmentions' : 'All messages'}`)
-          msgArray.push('**-> Verification Stage:** ' + verifyStages(guild.verificationLevel))
-          msgArray.push(`**-> Server-wide 2FA:** ${guild.mfaLevel ? 'Enabled' : 'Disabled'}`)
-        }
-        if (guild.afkChannelID !== null) msgArray.push('**-> AFK Channel:** ' + bot.getChannel(guild.afkChannelID).name)
-        msgArray.push('**-> Icon:** ' + guild.iconURL)
-        bot.createMessage(msg.channel.id, msgArray.join('\n'))
+        msgArray.push('**-> AFK Timeout:** ' + Math.floor(guild.afkTimeout / 60) + ' minutes')
+        msgArray.push(`**-> Default Notification:** ${guild.defaultNotifications ? 'Only @\u200Bmentions' : 'All messages'}`)
+        msgArray.push('**-> Verification Stage:** ' + verifyStages(guild.verificationLevel))
+        msgArray.push(`**-> Server-wide 2FA:** ${guild.mfaLevel ? 'Enabled' : 'Disabled'}`)
       }
+      if (guild.afkChannelID !== null) msgArray.push('**-> AFK Channel:** ' + bot.getChannel(guild.afkChannelID).name)
+      msgArray.push('**-> Icon:** ' + guild.iconURL)
+      bot.createMessage(msg.channel.id, msgArray.join('\n'))
     }
   }
 }
@@ -658,6 +716,7 @@ function getCommandsHelp (command) { // DIRTY
       cmdArray.push(`**${exports.execute[cmd].name}**\n`)
       cmdArray.push(`**Required level:** ${exports.execute[cmd].lvl}`)
       cmdArray.push(`**Usage:** ${'`' + exports.execute[cmd].usage + '`'}`)
+      cmdArray.push(`**Can use in DM:** ${exports.execute[cmd].guildOnly.firstUpperCase()}`)
       cmdArray.push(`**Description:** ${exports.execute[cmd].help}`)
     }
   }
