@@ -14,3 +14,6 @@ exports.warn = function (msg) {
 exports.error = function (msg) {
     Logger.error(msg)
 }
+exports.post = function (msg) {
+    Logger.info('HTTP: ' + msg)
+}
