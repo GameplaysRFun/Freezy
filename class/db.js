@@ -64,16 +64,19 @@ exports.checkCustomization = function(server, type) {
     var types = ['welcoming', 'welcome_message', 'farewell_message']
     if (type === 'welcoming') {
       serverDB.findOne({serverId: server}, function (e, doc) {
+        if (!doc) return reject('faulty db')
         if (doc.welcoming === true) return resolve(true)
         else return reject()
       })
     } if (type === 'welcome_message') {
       serverDB.findOne({serverId: server}, function (e, doc) {
+        if (!doc) return reject('faulty db')
         if (doc.welcome_message) return resolve(doc.welcome_message)
         else return reject()
       })
     } if (type === 'farewell_message') {
       serverDB.findOne({serverId: server}, function (e, doc) {
+        if (!doc) return reject('faulty db')
         if (doc.welcome_message) return resolve(doc.farewell_message)
         else return reject()
       })
@@ -165,17 +168,19 @@ exports.createUser = function (user) {
     })
   })
 }
-exports.setAchievement = function (user, id, boolean) {
+exports.setAchievement = function (user, id) {
   return new Promise((resolve, reject) => {
-    if (boolean) {
-      userDB.update({userId: user}, {$push: {achievements: id}}, {}, (e) => {
-        if (e) return reject(e)
+      exports.checkAchievement(user, id).catch(() => {
+        userDB.update({userId: user}, {$push: {achievements: id}}, {}, (e) => {
+          if (e) return reject(e)
+          resolve('Pushed')
+        })
+      }).then(() => {
+        userDB.update({userId: user}, {$pull: {achievements: id}}, {}, (e) => {
+          if (e) return reject(e)
+          resolve('Pulled')
+        })
       })
-    } else {
-      userDB.update({userId: user}, {$pull: {achievements: id}}, {}, (e) => {
-        if (e) return reject(e)
-      })
-    }
   })
 }
 exports.checkAchievement = function (user, id) {
@@ -183,6 +188,7 @@ exports.checkAchievement = function (user, id) {
     userDB.findOne({userId: user}, function (e, doc) {
       if (!doc) return reject(exports.createUser(user))
       if (doc.achievements.indexOf(id) >= 0) return resolve(true)
+      if (doc.achievements.indexOf(id) < 0) return reject()
     })
   })
 }
