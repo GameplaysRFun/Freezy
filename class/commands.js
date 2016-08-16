@@ -274,6 +274,15 @@ exports.execute = {
       bot.createMessage(msg.channel.id, 'You have level 4 permissions.')
     }
   },
+  say: {
+    name: 'Say',
+    help: 'You can make bot say ANYTHING!',
+    usage: '<say suffix>',
+    guildOnly: false,
+    fn: function (bot, msg, suffix) {
+      bot.createMessage(msg.channel.id, '\u200B' + suffix)
+    }
+  },
   customize: { // DIRTY! Needs rework later.
     name: 'Customize',
     help: 'Customizes the server preferences',
