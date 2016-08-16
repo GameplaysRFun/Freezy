@@ -48,4 +48,4 @@ UPDATE: As of v1.0.2, if you want to use YouTube search related features, get a 
 
 UPDATE: If you have any keys to places like Discord Bots, configure them in config, they're easy to understand (or should be)!
 
-[![Discord](https://discordapp.com/api/servers/206431108047437824/widget.png?style=banner3)](https://discord.gg/ZKA7sE8)
+[![Discord](https://discordapp.com/api/guilds/206431108047437824/widget.png?style=banner3)](https://discord.gg/ZKA7sE8)
