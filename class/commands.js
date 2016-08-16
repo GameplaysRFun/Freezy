@@ -279,6 +279,7 @@ exports.execute = {
     help: 'You can make bot say ANYTHING!',
     usage: '<say suffix>',
     guildOnly: false,
+    lvl: 0,
     fn: function (bot, msg, suffix) {
       bot.createMessage(msg.channel.id, '\u200B' + suffix)
     }
