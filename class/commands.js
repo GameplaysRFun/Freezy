@@ -138,8 +138,7 @@ exports.execute = {
             var requester = msg.channel.guild.members.get(vc.queue[i][3])
             name = requester.nick + '#' + requester.user.discriminator + ' (ID: ' + requester.user.id + ')'
             if (requester.nick === null) name = requester.user.username + '#' + requester.user.discriminator + ' (ID: ' + requester.user.id + ')'
-            if (vc.queue[i][1].length >= 35) playlist.push('- `[' + vc.queue[i][2] + ']` **' + vc.queue[i][1].substr(0, 35) + '...** by *' + name + '*')
-            if (vc.queue[i][1].length <= 35) playlist.push('- `[' + vc.queue[i][2] + ']` **' + vc.queue[i][1] + '** by *' + name + '*')
+            playlist.push('- `[' + vc.queue[i][2] + ']` **' + vc.queue[i][1] + '** by *' + name + '*')
           }
           bot.createMessage(msg.channel.id, '**Enqueued songs**\n\n' + playlist.join('\n'))
         }
@@ -187,8 +186,9 @@ exports.execute = {
               if (min < 10) min = '0' + Math.floor(info.length_seconds / 60)
               if (sec < 10) sec = '0' + Math.floor(info.length_seconds % 60)
               var parsedTime = min + ':' + sec
+              if (info.title.length > 34 && info.title.lastIndexOf(info.title) !== info.title.length) info.title = info.title.substr(0, 35) + '...'
               vc.queue.push([suffix, info.title, parsedTime, msg.author.id])
-              bot.createMessage(msg.channel.id, 'Requested and enqueued **' + info.title + '** in position **#' + vc.queue.length + '**')
+              bot.createMessage(msg.channel.id, 'Requested and enqueued **' + info.title+ '** in position **#' + vc.queue.length + '**')
             })
           } else {
             var song = ''
@@ -206,7 +206,9 @@ exports.execute = {
                   if (min < 10) min = '0' + Math.floor(info.length_seconds / 60)
                   if (sec < 10) sec = '0' + Math.floor(info.length_seconds % 60)
                   var parsedTime = min + ':' + sec
-                  bot.createMessage(msg.channel.id, '`[' + parsedTime + ']` Now playing **' + info.title + '**...')
+                  var songName = info.title
+                  if (songName.length >= 35) songName = info.title.substr(0, 35) + '...'
+                  bot.createMessage(msg.channel.id, '`[' + parsedTime + ']` Now playing **' + songName + '** requested by ' + msg.author.username + '#' + msg.author.discriminator + ' (' + msg.author.id + ')...')
                 })
               } else {
                 var next = ''
