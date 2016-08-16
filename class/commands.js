@@ -117,19 +117,7 @@ exports.execute = {
       } else {
         var k = msg.member.voiceState.channelID
         bot.joinVoiceChannel(msg.member.voiceState.channelID).then((conn) => {
-          bot.createMessage(msg.channel.id, 'Joined the voice channel you\'re in right now! You have time until the wait music ends to request something!')
-          var songg = ytdl('https://www.youtube.com/watch?v=fgf7cUHiCj8')
-          conn.playStream(songg)
-          songg.once('end', () => {
-            bot.voiceConnections.forEach((vc) => {
-              if (k.indexOf(vc.channelID) >= 0) {
-                if (!vc.playing) {
-                  conn.disconnect()
-                  bot.createMessage(msg.channel.id, 'No songs have been requested in time, leaving voice channel!')
-                }
-              }
-            })
-          })
+          bot.createMessage(msg.channel.id, 'Joined the voice channel you\'re in right now!')
         })
       }
     }
@@ -143,8 +131,17 @@ exports.execute = {
     fn: function (bot, msg, suffix) {
       bot.voiceConnections.forEach((vc) => {
         if (msg.member.voiceState.channelID.indexOf(vc.channelID) >= 0) {
-          if (vc.queueInfo[0] === undefined) return bot.createMessage(msg.channel.id, '**Currently not queueing anything**')
-          bot.createMessage(msg.channel.id, '**Enqueued songs**\n\n- ' + vc.queueInfo.join('\n- '))
+          if (vc.queue[0] === undefined) return bot.createMessage(msg.channel.id, '**Currently not queueing anything**')
+          var playlist = []
+          var name = ''
+          for (var i in vc.queue) {
+            var requester = msg.channel.guild.members.get(vc.queue[i][3])
+            name = requester.nick + '#' + requester.user.discriminator + ' (ID: ' + requester.user.id + ')'
+            if (requester.nick === null) name = requester.user.username + '#' + requester.user.discriminator + ' (ID: ' + requester.user.id + ')'
+            if (vc.queue[i][1].length >= 35) playlist.push('- `[' + vc.queue[i][2] + ']` **' + vc.queue[i][1].substr(0, 35) + '...** by *' + name + '*')
+            if (vc.queue[i][1].length <= 35) playlist.push('- `[' + vc.queue[i][2] + ']` **' + vc.queue[i][1] + '** by *' + name + '*')
+          }
+          bot.createMessage(msg.channel.id, '**Enqueued songs**\n\n' + playlist.join('\n'))
         }
       })
     }
@@ -182,29 +179,26 @@ exports.execute = {
       bot.voiceConnections.forEach((vc) => {
         if (msg.member.voiceState.channelID.indexOf(vc.channelID) > -1) {
           if (vc.queue === undefined) vc.queue = []
-          if (vc.queueInfo === undefined) vc.queueInfo = []
-          if (vc.queueLength === undefined) vc.queueLength = []
-          if (vc.queueRequired === undefined) vc.queueRequired === false
-          if (vc.playing && vc.queueRequired) {
+          if (vc.playing) {
             ytdl.getInfo(suffix, (e, info) => {
               if (e) return bot.createMessage(msg.channel.id, 'Unable to queue this song!')
-              vc.queue.push(suffix)
-              vc.queueInfo.push(info.title)
               var min = Math.floor(info.length_seconds / 60)
               var sec = Math.floor(info.length_seconds % 60)
               if (min < 10) min = '0' + Math.floor(info.length_seconds / 60)
               if (sec < 10) sec = '0' + Math.floor(info.length_seconds % 60)
               var parsedTime = min + ':' + sec
-              vc.queueLength.push(parsedTime)
+              vc.queue.push([suffix, info.title, parsedTime, msg.author.id])
               bot.createMessage(msg.channel.id, 'Requested and enqueued **' + info.title + '** in position **#' + vc.queue.length + '**')
             })
           } else {
             var song = ''
             function play (link) {
-              vc.queueRequired = true
-              song = ytdl(link)
+              song = ytdl(link, {audioonly: true})
               vc.playStream(song, {inlineVolume: false})
-              if (vc.queueLength < 1) {
+              vc.on('error', (e) => {
+                bot.createMessage(msg.channel.id, 'DEBUG: ' + e.stack)
+              })
+              if (vc.queue.length === 0) {
                 ytdl.getInfo(link, (e, info) => {
                   if (e) return bot.createMessage(msg.channel.id, 'Encountered an error in parsing the video!')
                   var min = Math.floor(info.length_seconds / 60)
@@ -216,14 +210,16 @@ exports.execute = {
                 })
               } else {
                 var next = ''
-                if (vc.queueInfo.length > 1) next = '\nUp next in the queue is **' + vc.queueInfo[1] + '**...'
-                bot.createMessage(msg.channel.id, '`[' + vc.queueLength[0] + ']` Now playing **' + vc.queueInfo[0] + '**...' + next)
+                function getName (pos) {
+                  if (!pos) pos = 0
+                  return msg.channel.guild.members.get(vc.queue[pos][3]).user.username + '#' + msg.channel.guild.members.get(vc.queue[pos][3]).user.discriminator + ' (' + msg.channel.guild.members.get(vc.queue[pos][3]).user.id + ')'
+                }
+                if (vc.queue.length > 1) next = '\nUp next in the queue is **' + vc.queue[1][1] + '**...'
+                bot.createMessage(msg.channel.id, '`[' + vc.queue[0][2] + ']` Now playing **' + vc.queue[0][1] + '** requested by ' + getName(0) + '...' + next)
               }
               song.once('end', () => {
                 if (vc.queue.length > 0) {
-                  play(vc.queue[0])
-                  vc.queueInfo.shift()
-                  vc.queueLength.shift()
+                  play(vc.queue[0][0])
                   return vc.queue.shift()
                 } else {
                   vc.queueRequired = false
@@ -328,7 +324,7 @@ exports.execute = {
               bot.editMessage(msg.channel.id, message.id, `**Result:**\n${result}`)
             }
           } catch (e) {
-            bot.editMessage(msg.channel.id, message.id, `**Result:**\n\`\`\`js${e.stack}\`\`\``)
+            bot.editMessage(msg.channel.id, message.id, `**Result:**\n\`\`\`js\n${e.stack}\`\`\``)
           }
         })
     }
@@ -674,7 +670,7 @@ exports.execute = {
       msgArray.push('**-> ID:** ' + guild.id)
       msgArray.push('**-> Owner:** ' + owner.username + '#' + owner.discriminator + ' *(ID: ' + owner.id + ')*')
       msgArray.push('**-> Members:** ' + guild.memberCount)
-      msgArray.push('**-> Created at:** ' + new Date(guild.joinedAt))
+      msgArray.push('**-> Created at:** ' + new Date(guild.createdAt))
       msgArray.push('**-> Text Channels:** ' + countChannels(0))
       msgArray.push('**-> Voice Channels:** ' + countChannels(2))
       if (suffix.toLowerCase() === 'full' || suffix.toLowerCase() === 'all' || suffix.toLowerCase() === 'extend') {
@@ -687,6 +683,7 @@ exports.execute = {
           }
           msgArray.push('**-> Custom Emojis:** ' + k.join(' '))
         }
+        msgArray.push('**-> Bot Joined At:** ' + new Date(guild.joinedAt))
         msgArray.push('**-> AFK Timeout:** ' + Math.floor(guild.afkTimeout / 60) + ' minutes')
         msgArray.push(`**-> Default Notification:** ${guild.defaultNotifications ? 'Only @\u200Bmentions' : 'All messages'}`)
         msgArray.push('**-> Verification Stage:** ' + verifyStages(guild.verificationLevel))
