@@ -53,6 +53,46 @@ exports.execute = {
       bot.leaveGuild(msg.channel.guild.id)
     }
   },
+  purge: {
+    name: 'Purge',
+    help: 'Purges messages in channel.',
+    usage: '<purge amount>',
+    guildOnly: true,
+    lvl: 0,
+    fn: function (bot, msg, suffix) {
+      if (msg.member.permission.json['manageMessages']) {
+        if (parseInt(suffix) <= 100 && parseInt(suffix) > 0) {
+          bot.getMessages(msg.channel.id, parseInt(suffix)).then((deletThis) => {
+            var finalDelet = []
+            deletThis.forEach((delet) => {
+              finalDelet.push(delet.id)
+            })
+            if (parseInt(suffix) !== 1 && deletThis[0] !== undefined && finalDelet.length > 1) {
+              bot.deleteMessages(msg.channel.id, finalDelet).then(() => {
+                bot.createMessage(msg.channel.id, ':printer: Deleted **' + finalDelet.length + '** messages!')
+              }).catch(() => {
+                bot.createMessage(msg.channel.id, ':x: I do not have sufficient permissions!\n**ERR_CODE:** manageMessages')
+              })
+            } else if (deletThis[0] !== undefined && parseInt(suffix) === 1) {
+              bot.deleteMessage(msg.channel.id, deletThis[0].id).then(() => {
+                bot.createMessage(msg.channel.id, ':printer: Deleted **' + parseInt(suffix) + '** message!')
+              }).catch(() => {
+                bot.createMessage(msg.channel.id, ':x: I do not have sufficient permissions!\n**ERR_CODE:** manageMessages')
+              })
+            } else {
+              bot.createMessage(msg.channel.id, ':x: No messages to purge!')
+            }
+          }).catch(() => {
+            bot.createMessage(msg.channel.id, ':x: I do not have sufficient permissions!\n**ERR_CODE:** readMessageHistory')
+          })
+        } else {
+          return bot.createMessage(msg.channel.id, ':x: Your number must be between 1 and 100!')
+        }
+      } else {
+        return bot.createMessage(msg.channel.id, ':x: You do not have sufficient permissions!\n**ERR_CODE:** manageMessages')
+      }
+    }
+  },
   assign: {
     name: 'Assign',
     help: 'Assigns something. Developer exclusive.',
@@ -274,16 +314,6 @@ exports.execute = {
       bot.createMessage(msg.channel.id, 'You have level 4 permissions.')
     }
   },
-  say: {
-    name: 'Say',
-    help: 'You can make bot say ANYTHING!',
-    usage: '<say suffix>',
-    guildOnly: false,
-    lvl: 0,
-    fn: function (bot, msg, suffix) {
-      bot.createMessage(msg.channel.id, '\u200B' + suffix)
-    }
-  },
   customize: { // DIRTY! Needs rework later.
     name: 'Customize',
     help: 'Customizes the server preferences',
@@ -422,22 +452,28 @@ exports.execute = {
   ban: {
     name: 'Ban',
     help: 'This command is meant for server staff to ban people.',
-    usage: '<ban @\u200Bmention (days)>',
+    usage: '<ban @\u200Bmention>',
     guildOnly: true,
     lvl: 0,
       fn: function (bot, msg, suffix) {
         var base = suffix
         var stub = base.split(' ')
-        if (msg.member.permission.json['banMembers']) {
-          if (msg.mentions.length === 1 && !isNaN(stub[1])) {
-            bot.banGuildMember(msg.channel.guild.id, msg.mentions[0].id, stub[1])
-            bot.createMessage(msg.channel.id, 'The user should now be banned, if I had the permissions for it!')
+        if (msg.channel.guild.members.get(bot.user.id).permission.json['banMembers']) {
+          if (msg.member.permission.json['banMembers']) {
+            if (msg.mentions.length === 1) {
+              bot.banGuildMember(msg.channel.guild.id, msg.mentions[0].id, 1).then(() => {
+                bot.createMessage(msg.channel.id, '**' + msg.mentions[0].username + '** has been banned! :eyes: :hammer:')
+              }).catch(() => {
+                bot.createMessage(msg.channel.id, ':x: Couldn\'t ban **' + msg.mentions[0].username + '**, most likely person\'s role is higher than bot\'s!')
+              })
+            } else {
+              bot.createMessage(msg.channel.id, "You didin't mention anyone!")
+            }
           } else {
-            if (isNaN(stub[1])) return bot.createMessage(msg.channel.id, "Your second param is not a number!")
-            if (stub[0] !== msg.mentions[0]) bot.createMessage(msg.channel.id, "Your first param isn't a mention!")
+            bot.createMessage(msg.channel.id, 'Your role does not have enough permissions!')
           }
         } else {
-          bot.createMessage(msg.channel.id, 'Your role does not have enough permissions!')
+          bot.createMessage(msg.channel.id, 'The bot\'s role has no sufficient permissions!')
         }
       }
   },
