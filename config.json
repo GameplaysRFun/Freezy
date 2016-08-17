@@ -16,7 +16,10 @@
         "enabled": false
     },
     "perms": {
-        "masterUsers": []
+        "masterUsers": [],
+        "lvl3": [],
+        "lvl2": [],
+        "lvl1": []
     },
     "keys": {
         "ytapi": "youtube v3 api key",
