@@ -433,7 +433,7 @@ exports.execute = {
       bot.createMessage(msg.channel.id, sentences[random])
     }
   },
-  /*suggest: { // rework required
+  suggest: {
     name: 'Suggest',
     help: 'You have a great idea for the bot? This command sends that idea to the devs!',
     usage: 'suggest idea',
@@ -445,10 +445,10 @@ exports.execute = {
         bot.createMessage(msg.channel.id, 'You need to add a suggestion first!')
       } else {
         bot.createMessage(msg.channel.id, 'Your suggestion has been sent to the devs!')
-        bot.createMessage(config.config.suggest, `**SUGGESTION** | **${msg.author.username} ** | **${date}** | **${suffix}**`)
+        Logger.suggest(`${msg.author.username}#${msg.author.discriminator} (${msg.author.id}) suggested: ${suffix}`)
       }
     }
-  },*/
+  },
   ban: {
     name: 'Ban',
     help: 'This command is meant for server staff to ban people.',
