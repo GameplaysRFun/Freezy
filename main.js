@@ -112,7 +112,8 @@ bot.on('messageCreate', (msg) => {
                 bot.createMessage(msg.channel.id, 'Detected missing database entry.. **Fixing it!**\nFeel free to use me again!')
                 db.guildCreation(msg.channel.guild.id, msg.channel.guild.ownerID)
               } else {
-                bot.createMessage(msg.channel.id, ':x: **Unknown database error!** Report this to the devs!')
+                console.log(e)
+                bot.createMessage(msg.channel.id, ':x: **Unknown database error!** Report this to the devs!\n**ERR**: ' + e)
               }
             })
           } else {
