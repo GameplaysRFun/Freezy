@@ -8,6 +8,7 @@ winston.loggers.add('Logger', {
       name: 'info-log',
       filename: './logs/normal',
       level: 'info',
+      json: false,
       formatter: function (options) {
         return '[' + new Date(Date.now()).toLocaleString() + '] ' + options.message
       }
@@ -16,6 +17,7 @@ winston.loggers.add('Logger', {
       name: 'error-log',
       filename: './logs/errors',
       level: 'error',
+      json: false,
       formatter: function (options) {
         return '[' + new Date(Date.now()).toLocaleString() + '] ' + options.message
       }
