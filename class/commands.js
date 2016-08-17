@@ -146,8 +146,8 @@ exports.execute = {
     lvl: 1,
     fn: function (bot, msg) {
       bot.voiceConnections.forEach((vc) => {
-        if (msg.member.voiceState.channelID.indexOf(vc.channelID) >= 0) {
-          return bot.createMessage(msg.channel.id, 'Already in the voice channel!')
+        if (msg.channel.guild.id.indexOf(vc.id) >= 0) {
+          return bot.createMessage(msg.channel.id, 'Already in a voice channel!')
         }
       })
       if (msg.member.voiceState.channelID === null) {
@@ -170,7 +170,7 @@ exports.execute = {
     lvl: 1,
     fn: function (bot, msg, suffix) {
       bot.voiceConnections.forEach((vc) => {
-        if (msg.member.voiceState.channelID.indexOf(vc.channelID) >= 0) {
+        if (msg.channel.guild.id.indexOf(vc.id) >= 0) {
           if (vc.queue[0] === undefined) return bot.createMessage(msg.channel.id, '**Currently not queueing anything**')
           var playlist = []
           var name = ''
@@ -193,7 +193,7 @@ exports.execute = {
     lvl: 1,
     fn: function (bot, msg, suffix) {
       bot.voiceConnections.forEach((vc) => {
-        if (msg.member.voiceState.channelID.indexOf(vc.channelID) >= 0) {
+        if (msg.channel.guild.id.indexOf(vc.id) >= 0) {
           if (!isNaN(parseInt(suffix))) {
             if (parseInt(suffix) <= 100) {
               vc.setVolume(Math.abs(parseInt(suffix) / 100))
@@ -216,7 +216,7 @@ exports.execute = {
     lvl: 1,
     fn: function (bot, msg, suffix) {
       bot.voiceConnections.forEach((vc) => {
-        if (msg.member.voiceState.channelID.indexOf(vc.channelID) > -1) {
+        if (msg.channel.guild.id.indexOf(vc.id) >= 0) {
           if (vc.queue === undefined) vc.queue = []
           if (vc.playing) {
             ytdl.getInfo(suffix, (e, info) => {
@@ -433,7 +433,7 @@ exports.execute = {
       bot.createMessage(msg.channel.id, sentences[random])
     }
   },
-  suggest: {
+  /*suggest: { // rework required
     name: 'Suggest',
     help: 'You have a great idea for the bot? This command sends that idea to the devs!',
     usage: 'suggest idea',
@@ -448,7 +448,7 @@ exports.execute = {
         bot.createMessage(config.config.suggest, `**SUGGESTION** | **${msg.author.username} ** | **${date}** | **${suffix}**`)
       }
     }
-  },
+  },*/
   ban: {
     name: 'Ban',
     help: 'This command is meant for server staff to ban people.',
