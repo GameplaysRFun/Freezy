@@ -121,7 +121,7 @@ exports.checkIfLvl = function (server, user, level) {
   return new Promise((resolve, reject) => {
     if (!server || !user || !level) return reject('Abort! Missing some parameters!')
     serverDB.findOne({serverId: server}, function (e, doc) {
-      if (!doc) return reject(e)
+      if (!doc) return reject('No DB')
       if (e) return reject(e)
       if (masterUser.indexOf(user) >= 0) return resolve(9)
       if (doc.owner === user) return resolve(4)
