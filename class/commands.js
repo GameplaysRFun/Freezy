@@ -482,7 +482,7 @@ exports.execute = {
     guildOnly: true,
     lvl: 0,
       fn: function (bot, msg, suffix) {
-        if (msg.channel.guild.members.get(bot.user.id).permission.json['banMembers']) {
+        if (msg.channel.guild.members.get(bot.user.id).permission.json['kickMembers']) {
           if (msg.member.permission.json['kickMembers']) {
             if (msg.mentions.length === 1) {
               bot.deleteGuildMember(msg.channel.guild.id, msg.mentions[0].id, 1).then(() => {
