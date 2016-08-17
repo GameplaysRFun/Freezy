@@ -466,7 +466,7 @@ exports.execute = {
                   bot.createMessage(msg.channel.id, ':x: Couldn\'t ban **' + msg.mentions[0].username + '**, most likely person\'s role is higher than bot\'s!')
                 })
               } else {
-                bot.createMessage(msg.channel.id, ':warning: **Confirmation**\nConfirm your action by typing in `' + prefix + 'ban confirm @\u200Bmention`\n**THIS ACTION IS IRREVERSILBE!**')
+                bot.createMessage(msg.channel.id, ':warning: **Confirmation**\nConfirm your action by typing in `' + prefix + 'ban confirm @\u200Bmention`\n**THIS ACTION IS IRREVERSIBLE!**')
               }
             } else {
               bot.createMessage(msg.channel.id, "You didin't mention anyone!")
@@ -496,7 +496,7 @@ exports.execute = {
                   bot.createMessage(msg.channel.id, ':x: Couldn\'t kick **' + msg.mentions[0].username + '**, most likely person\'s role is higher than bot\'s!')
                 })
               } else {
-                bot.createMessage(msg.channel.id, ':warning: **Confirmation**\nConfirm your action by typing in `' + prefix + 'kick confirm @\u200Bmention`\n**THIS ACTION IS IRREVERSILBE!**')
+                bot.createMessage(msg.channel.id, ':warning: **Confirmation**\nConfirm your action by typing in `' + prefix + 'kick confirm @\u200Bmention`\n**THIS ACTION IS IRREVERSIBLE!**')
               }
             } else {
               bot.createMessage(msg.channel.id, "You didin't mention anyone!")
