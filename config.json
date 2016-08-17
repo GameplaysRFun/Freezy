@@ -4,7 +4,6 @@
     },
     "config": {
         "prefix": ">",
-        "suggest": "your suggestion channel id",
         "shards": 3,
         "stacktrace": false,
         "discordbots": false
