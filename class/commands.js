@@ -459,11 +459,15 @@ exports.execute = {
         if (msg.channel.guild.members.get(bot.user.id).permission.json['banMembers']) {
           if (msg.member.permission.json['banMembers']) {
             if (msg.mentions.length === 1) {
-              bot.banGuildMember(msg.channel.guild.id, msg.mentions[0].id, 1).then(() => {
-                bot.createMessage(msg.channel.id, '**' + msg.mentions[0].username + '** has been banned! :eyes: :hammer:')
-              }).catch(() => {
-                bot.createMessage(msg.channel.id, ':x: Couldn\'t ban **' + msg.mentions[0].username + '**, most likely person\'s role is higher than bot\'s!')
-              })
+              if (suffix.startsWith('confirm')) {
+                bot.banGuildMember(msg.channel.guild.id, msg.mentions[0].id, 1).then(() => {
+                  bot.createMessage(msg.channel.id, '**' + msg.mentions[0].username + '** has been banned! :eyes: :hammer:')
+                }).catch(() => {
+                  bot.createMessage(msg.channel.id, ':x: Couldn\'t ban **' + msg.mentions[0].username + '**, most likely person\'s role is higher than bot\'s!')
+                })
+              } else {
+                bot.createMessage(msg.channel.id, ':warning: **Confirmation**\nConfirm your action by typing in `' + prefix + 'ban confirm @\u200Bmention`\n**THIS ACTION IS IRREVERSILBE!**')
+              }
             } else {
               bot.createMessage(msg.channel.id, "You didin't mention anyone!")
             }
@@ -485,11 +489,15 @@ exports.execute = {
         if (msg.channel.guild.members.get(bot.user.id).permission.json['kickMembers']) {
           if (msg.member.permission.json['kickMembers']) {
             if (msg.mentions.length === 1) {
-              bot.deleteGuildMember(msg.channel.guild.id, msg.mentions[0].id, 1).then(() => {
-                bot.createMessage(msg.channel.id, '**' + msg.mentions[0].username + '** has been kicked! :eyes: :hammer:')
-              }).catch(() => {
-                bot.createMessage(msg.channel.id, ':x: Couldn\'t kick **' + msg.mentions[0].username + '**, most likely person\'s role is higher than bot\'s!')
-              })
+              if (suffix.startsWith('confirm')) {
+                bot.deleteGuildMember(msg.channel.guild.id, msg.mentions[0].id, 1).then(() => {
+                  bot.createMessage(msg.channel.id, '**' + msg.mentions[0].username + '** has been kicked! :eyes: :hammer:')
+                }).catch(() => {
+                  bot.createMessage(msg.channel.id, ':x: Couldn\'t kick **' + msg.mentions[0].username + '**, most likely person\'s role is higher than bot\'s!')
+                })
+              } else {
+                bot.createMessage(msg.channel.id, ':warning: **Confirmation**\nConfirm your action by typing in `' + prefix + 'kick confirm @\u200Bmention`\n**THIS ACTION IS IRREVERSILBE!**')
+              }
             } else {
               bot.createMessage(msg.channel.id, "You didin't mention anyone!")
             }
