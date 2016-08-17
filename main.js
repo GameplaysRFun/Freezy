@@ -107,9 +107,13 @@ bot.on('messageCreate', (msg) => {
               if (pass >= lvl) {
                 cmd.execute[name].fn(bot, msg, suffix)
               }
-            }).catch(() => {
-              bot.createMessage(msg.channel.id, 'Detected missing database entry.. **Fixing it!**\nFeel free to use me again!')
-              db.guildCreation(msg.channel.guild.id, msg.channel.guild.ownerID)
+            }).catch((e) => {
+              if (e === 'No DB') {
+                bot.createMessage(msg.channel.id, 'Detected missing database entry.. **Fixing it!**\nFeel free to use me again!')
+                db.guildCreation(msg.channel.guild.id, msg.channel.guild.ownerID)
+              } else {
+                bot.createMessage(msg.channel.id, ':x: **Unknown database error!** Report this to the devs!')
+              }
             })
           } else {
             cmd.execute[name].fn(bot, msg, suffix)
@@ -128,13 +132,13 @@ bot.on('messageCreate', (msg) => {
           }
         }
         Logger.log(`${msg.author.username} executed <${stub.join(' ')}>`)
-      } catch (e) {
+      } catch (err) {
         if (cmd.execute[name] !== undefined) {
           Logger.error(`${msg.author.username} attempted to execute <${stub.join(' ')}>`)
           if (stacktrace) {
-            Logger.error(`Stacktrace: ${e.stack}`)
+            Logger.error(`Stacktrace: ${err.stack}`)
           } if (!stacktrace) {
-            Logger.error(`Error: ${e}`)
+            Logger.error(`Error: ${err}`)
           }
         }
       }
