@@ -456,8 +456,6 @@ exports.execute = {
     guildOnly: true,
     lvl: 0,
       fn: function (bot, msg, suffix) {
-        var base = suffix
-        var stub = base.split(' ')
         if (msg.channel.guild.members.get(bot.user.id).permission.json['banMembers']) {
           if (msg.member.permission.json['banMembers']) {
             if (msg.mentions.length === 1) {
@@ -484,15 +482,24 @@ exports.execute = {
     guildOnly: true,
     lvl: 0,
       fn: function (bot, msg, suffix) {
-        if (msg.member.permission.json['kickMembers']) {
-          if (msg.mentions.length === 1) {
-            bot.deleteGuildMember(msg.channel.guild.id, msg.mentions[0].id)
-            bot.createMessage(msg.channel.id, 'The user should now be kicked, if I had the permissions for it!')
+        if (msg.channel.guild.members.get(bot.user.id).permission.json['banMembers']) {
+          if (msg.member.permission.json['kickMembers']) {
+            if (msg.mentions.length === 1) {
+              bot.deleteGuildMember(msg.channel.guild.id, msg.mentions[0].id, 1).then(() => {
+                bot.createMessage(msg.channel.id, '**' + msg.mentions[0].username + '** has been kicked! :eyes: :hammer:')
+              }).catch(() => {
+                bot.createMessage(msg.channel.id, ':x: Couldn\'t kick **' + msg.mentions[0].username + '**, most likely person\'s role is higher than bot\'s!')
+              })
+            } else {
+              bot.createMessage(msg.channel.id, "You didin't mention anyone!")
+            }
+          } else {
+            bot.createMessage(msg.channel.id, 'Your role does not have enough permissions!')
           }
         } else {
-          bot.createMessage(msg.channel.id, 'Your role does not have enough permissions!')
-        }
+          bot.createMessage(msg.channel.id, 'The bot\'s role has no sufficient permissions!')
       }
+    }
   },
   userinfo: {
     name: 'Userinfo',
