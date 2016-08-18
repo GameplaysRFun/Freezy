@@ -791,7 +791,7 @@ function getCommandsHelp (command) { // DIRTY
       cmdArray.push(`**${exports.execute[cmd].name}**\n`)
       cmdArray.push(`**Required level:** ${exports.execute[cmd].lvl}`)
       cmdArray.push(`**Usage:** ${'`' + exports.execute[cmd].usage + '`'}`)
-      cmdArray.push(`**Can use in DM:** ${exports.execute[cmd].guildOnly.firstUpperCase()}`)
+      cmdArray.push(`**Can use in DM:** ${exports.execute[cmd].guildOnly}`)
       cmdArray.push(`**Description:** ${exports.execute[cmd].help}`)
     }
   }
