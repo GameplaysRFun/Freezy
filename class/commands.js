@@ -231,13 +231,8 @@ exports.execute = {
               bot.createMessage(msg.channel.id, 'Requested and enqueued **' + info.title+ '** in position **#' + vc.queue.length + '**')
             })
           } else {
-            var song = ''
             function play (link) {
-              song = ytdl(link, {audioonly: true})
-              vc.playStream(song, {inlineVolume: false})
-              vc.on('error', (e) => {
-                bot.createMessage(msg.channel.id, 'DEBUG: ' + e.stack)
-              })
+              vc.playStream(ytdl(link), {inlineVolume: true})
               if (vc.queue.length === 0) {
                 ytdl.getInfo(link, (e, info) => {
                   if (e) return bot.createMessage(msg.channel.id, 'Encountered an error in parsing the video!')
@@ -259,14 +254,15 @@ exports.execute = {
                 if (vc.queue.length > 1) next = '\nUp next in the queue is **' + vc.queue[1][1] + '**...'
                 bot.createMessage(msg.channel.id, '`[' + vc.queue[0][2] + ']` Now playing **' + vc.queue[0][1] + '** requested by ' + getName(0) + '...' + next)
               }
-              song.once('end', () => {
-                if (vc.queue.length > 0) {
-                  play(vc.queue[0][0])
-                  return vc.queue.shift()
-                } else {
-                  vc.queueRequired = false
-                  vc.disconnect()
-                  return bot.createMessage(msg.channel.id, 'All songs in the queue have been played, leaving voice channel!')
+              vc.on('end', () => {
+                if (!vc.playing) {
+                  if (vc.queue.length > 0) {
+                    play(vc.queue[0][0])
+                    return vc.queue.shift()
+                  } else {
+                    vc.disconnect()
+                    return bot.createMessage(msg.channel.id, 'All songs in the queue have been played, leaving voice channel!')
+                  }
                 }
               })
             }
@@ -275,6 +271,25 @@ exports.execute = {
         } else {
           if (vc.id === msg.channel.guild.id) {
             bot.createMessage(msg.channel.id, '**Not in the voice channel you\'re in!**')
+          }
+        }
+      })
+    }
+  },
+  skip: {
+    name: 'Skip',
+    help: '',
+    usage: '',
+    guildOnly: true,
+    lvl: 0,
+    fn: function (bot, msg) {
+      bot.voiceConnections.forEach((vc) => {
+        if (msg.channel.guild.id.indexOf(vc.id) >= 0) {
+          if (db.checkIfLvl(msg.channel.guild.id, msg.author.id, 1) || vc.queue[0][3] === msg.author.id) {
+            bot.createMessage(msg.channel.id, ':watch: **Skipped current song**')
+            vc.stopPlaying()
+          } else {
+            bot.createMessage(msg.channel.id, ':x: **Permission Denied!**\nYou need either level 1 permission, or be the song requester to skip current song!')
           }
         }
       })
@@ -359,16 +374,16 @@ exports.execute = {
     lvl: 9,
     guildOnly: false,
     fn: function (bot, msg, suffix) {
-        bot.createMessage(msg.channel.id, '\u200B**Evaluating...**').then((message) => {
-          try {
-            var result = eval(suffix) // eslint-disable-line
-            if (typeof result !== 'object') {
-              bot.editMessage(msg.channel.id, message.id, `**Result:**\n${result}`)
-            }
-          } catch (e) {
-            bot.editMessage(msg.channel.id, message.id, `**Result:**\n\`\`\`js\n${e.stack}\`\`\``)
+      bot.createMessage(msg.channel.id, '\u200B**Evaluating...**').then((message) => {
+        try {
+          var result = eval(suffix) // eslint-disable-line
+          if (typeof result !== 'object') {
+            bot.editMessage(msg.channel.id, message.id, `**Result:**\n${result}`)
           }
-        })
+        } catch (e) {
+          bot.editMessage(msg.channel.id, message.id, `**Result:**\n\`\`\`js\n${e.stack}\`\`\``)
+        }
+      })
     }
   },
   help: {
@@ -466,7 +481,7 @@ exports.execute = {
                   bot.createMessage(msg.channel.id, ':x: Couldn\'t ban **' + msg.mentions[0].username + '**, most likely person\'s role is higher than bot\'s!')
                 })
               } else {
-                bot.createMessage(msg.channel.id, ':warning: **Confirmation**\nConfirm your action by typing in `' + prefix + 'ban confirm @\u200Bmention`\n**THIS ACTION IS IRREVERSIBLE!**')
+                bot.createMessage(msg.channel.id, ':warning: **Confirmation**\nConfirm your action by typing in `' + prefix + 'ban confirm @\u200Bmention`\n**THIS ACTION IS IRREVERSILBE!**')
               }
             } else {
               bot.createMessage(msg.channel.id, "You didin't mention anyone!")
@@ -496,7 +511,7 @@ exports.execute = {
                   bot.createMessage(msg.channel.id, ':x: Couldn\'t kick **' + msg.mentions[0].username + '**, most likely person\'s role is higher than bot\'s!')
                 })
               } else {
-                bot.createMessage(msg.channel.id, ':warning: **Confirmation**\nConfirm your action by typing in `' + prefix + 'kick confirm @\u200Bmention`\n**THIS ACTION IS IRREVERSIBLE!**')
+                bot.createMessage(msg.channel.id, ':warning: **Confirmation**\nConfirm your action by typing in `' + prefix + 'kick confirm @\u200Bmention`\n**THIS ACTION IS IRREVERSILBE!**')
               }
             } else {
               bot.createMessage(msg.channel.id, "You didin't mention anyone!")
