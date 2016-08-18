@@ -278,8 +278,8 @@ exports.execute = {
   },
   skip: {
     name: 'Skip',
-    help: '',
-    usage: '',
+    help: 'Skips current song.',
+    usage: '<skip>',
     guildOnly: true,
     lvl: 0,
     fn: function (bot, msg) {
