@@ -254,7 +254,7 @@ exports.execute = {
                 if (vc.queue.length > 1) next = '\nUp next in the queue is **' + vc.queue[1][1] + '**...'
                 bot.createMessage(msg.channel.id, '`[' + vc.queue[0][2] + ']` Now playing **' + vc.queue[0][1] + '** requested by ' + getName(0) + '...' + next)
               }
-              vc.on('end', () => {
+              vc.once('end', () => {
                 if (!vc.playing) {
                   if (vc.queue.length > 0) {
                     play(vc.queue[0][0])
