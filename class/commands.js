@@ -1,3 +1,4 @@
+"use strict"
 const Logger = require('./logger.js')
 const config = require('../config.json')
 const db = require('./db.js')
@@ -5,6 +6,7 @@ const ytdl = require('ytdl-core')
 const ytnode = require('youtube-node')
 const YouTube = new ytnode()
 const pkg = require('../package.json')
+const request = require('request')
 YouTube.setKey(config.keys.ytapi)
 var prefix = config.config.prefix
 var masterUser = config.perms.masterUsers
@@ -145,17 +147,11 @@ exports.execute = {
     guildOnly: true,
     lvl: 1,
     fn: function (bot, msg) {
-      bot.voiceConnections.forEach((vc) => {
-        if (msg.channel.guild.id.indexOf(vc.id) >= 0) {
-          return bot.createMessage(msg.channel.id, 'Already in a voice channel!')
-        }
-      })
       if (msg.member.voiceState.channelID === null) {
         bot.createMessage(msg.channel.id, "\u200B**Can't join a voice channel, if you're not in one yourself!**")
       } else if (msg.member.voiceState.selfDeaf|| msg.member.voiceState.deaf) {
         bot.createMessage(msg.channel.id, "\u200B**Sorry, you're either deafened locally or by server, try again when you're not deafened!**")
       } else {
-        var k = msg.member.voiceState.channelID
         bot.joinVoiceChannel(msg.member.voiceState.channelID).then((conn) => {
           bot.createMessage(msg.channel.id, 'Joined the voice channel you\'re in right now!')
         })
@@ -219,32 +215,67 @@ exports.execute = {
         if (msg.channel.guild.id.indexOf(vc.id) >= 0) {
           if (vc.queue === undefined) vc.queue = []
           if (vc.playing) {
+            if (suffix.includes('youtube.com/watch?v=') || suffix.includes('youtu.be/')) {
             ytdl.getInfo(suffix, (e, info) => {
               if (e) return bot.createMessage(msg.channel.id, 'Unable to queue this song!')
               var min = Math.floor(info.length_seconds / 60)
               var sec = Math.floor(info.length_seconds % 60)
-              if (min < 10) min = '0' + Math.floor(info.length_seconds / 60)
-              if (sec < 10) sec = '0' + Math.floor(info.length_seconds % 60)
-              var parsedTime = min + ':' + sec
+              if (min < 10) min = '0' + min
+              if (sec < 10) sec = '0' + sec
+              let parsedTime = min + ':' + sec
               if (info.title.length > 34 && info.title.lastIndexOf(info.title) !== info.title.length) info.title = info.title.substr(0, 35) + '...'
               vc.queue.push([suffix, info.title, parsedTime, msg.author.id])
               bot.createMessage(msg.channel.id, 'Requested and enqueued **' + info.title+ '** in position **#' + vc.queue.length + '**')
             })
+            } else {
+              if (suffix.startsWith('http://soundcloud.com') || suffix.startsWith('https://soundcloud.com')) {
+                request.get('http://api.soundcloud.com/resolve.json?url=' + suffix + '&client_id=' + config.keys.soundcloudCID, (e, req, body) => {
+                  var data = JSON.parse(body)
+                  var min = Math.floor(data.duration / 60000 % 60)
+                  var sec = Math.floor(data.duration / 1000 % 60)
+                  if (min < 10) min = '0' + min
+                  if (sec < 10) sec = '0' + sec
+                  let parsedTime = min + ':' + sec
+                  if (data.title.length >= 35 && data.title.lastIndexOf(data.title) !== data.title.length) data.title = data.title.substr(0, 35) + '...'
+                  vc.queue.push([data["stream_url"] + '?client_id=' + config.keys.soundcloudCID, data.title, parsedTime, msg.author.id])
+                  bot.createMessage(msg.channel.id, 'Requested and enqueued **' + data.title + '** in position **#' + vc.queue.length + '**')
+                })
+              }
+            }
           } else {
             function play (link) {
-              vc.playStream(ytdl(link), {inlineVolume: true})
+              if (link.includes('youtube') || link.includes('youtu.be')) {vc.playStream(ytdl(link), {inlineVolume: true})}
+              if (link.includes('soundcloud.com')) {
+                if (vc.queue.length === 0) {
+                  request.get('http://api.soundcloud.com/resolve.json?url=' + link + '&client_id=' + config.keys.soundcloudCID, (e, req, body) => {
+                    let data = JSON.parse(body)
+                    vc.playStream(request.get(data["stream_url"] + '?client_id=' + config.keys.soundcloudCID), {inlineVolume: true})
+                    var min = Math.floor(data.duration / 60000 % 60)
+                    var sec = Math.floor(data.duration / 1000 % 60)
+                    if (min < 10) min = '0' + min
+                    if (sec < 10) sec = '0' + sec
+                    var songName = data.title
+                    if (songName.length >= 35) songName = data.title.substr(0, 35) + '...'
+                    bot.createMessage(msg.channel.id, '`[' + min + ':' + sec + ']` Now playing **' + songName + '** requested by ' + msg.author.username + '#' + msg.author.discriminator + ' (' + msg.author.id + ')...')
+                  })
+                } else {
+                  vc.playStream(request.get(vc.queue[0][0]), {inlineVolume: true})
+                }
+              }
               if (vc.queue.length === 0) {
-                ytdl.getInfo(link, (e, info) => {
-                  if (e) return bot.createMessage(msg.channel.id, 'Encountered an error in parsing the video!')
-                  var min = Math.floor(info.length_seconds / 60)
-                  var sec = Math.floor(info.length_seconds % 60)
-                  if (min < 10) min = '0' + Math.floor(info.length_seconds / 60)
-                  if (sec < 10) sec = '0' + Math.floor(info.length_seconds % 60)
-                  var parsedTime = min + ':' + sec
-                  var songName = info.title
-                  if (songName.length >= 35) songName = info.title.substr(0, 35) + '...'
-                  bot.createMessage(msg.channel.id, '`[' + parsedTime + ']` Now playing **' + songName + '** requested by ' + msg.author.username + '#' + msg.author.discriminator + ' (' + msg.author.id + ')...')
-                })
+                if (link.includes('youtube.com') || link.includes('youtu.be')) {
+                  ytdl.getInfo(link, (e, info) => {
+                    if (e) return bot.createMessage(msg.channel.id, 'Encountered an error in parsing the video!')
+                    var min = Math.floor(info.length_seconds / 60)
+                    var sec = Math.floor(info.length_seconds % 60)
+                    if (min < 10) min = '0' + Math.floor(info.length_seconds / 60)
+                    if (sec < 10) sec = '0' + Math.floor(info.length_seconds % 60)
+                    var parsedTime = min + ':' + sec
+                    var songName = info.title
+                    if (songName.length >= 35) songName = info.title.substr(0, 35) + '...'
+                    bot.createMessage(msg.channel.id, '`[' + parsedTime + ']` Now playing **' + songName + '** requested by ' + msg.author.username + '#' + msg.author.discriminator + ' (' + msg.author.id + ')...')
+                  })
+                }
               } else {
                 var next = ''
                 function getName (pos) {
@@ -285,7 +316,11 @@ exports.execute = {
     fn: function (bot, msg) {
       bot.voiceConnections.forEach((vc) => {
         if (msg.channel.guild.id.indexOf(vc.id) >= 0) {
-          if (db.checkIfLvl(msg.channel.guild.id, msg.author.id, 1) || vc.queue[0][3] === msg.author.id) {
+          var lvl = 0
+          db.checkIfLvl(msg.channel.guild.id, msg.author.id).then((kk) => {
+            lvl = kk
+          })
+          if (lvl >= 1 && vc.queue[0] !== undefined || vc.queue[0][3] === msg.author.id && vc.queue[0] !== undefined) {
             bot.createMessage(msg.channel.id, ':watch: **Skipped current song**')
             vc.stopPlaying()
           } else {
@@ -770,6 +805,71 @@ exports.execute = {
       if (guild.afkChannelID !== null) msgArray.push('**-> AFK Channel:** ' + bot.getChannel(guild.afkChannelID).name)
       msgArray.push('**-> Icon:** ' + guild.iconURL)
       bot.createMessage(msg.channel.id, msgArray.join('\n'))
+    }
+  },
+  profile: {
+    name: 'Profile',
+    help: 'Displays your profile',
+    usage: '<profile <set/remove> <field> <value>>',
+    guildOnly: false,
+    lvl: 0,
+    fn: function (bot, msg, suffix) {
+      if (!suffix || suffix.length < 2) {
+        db.getProfile(msg.author.id).then((profile) => {
+          if (profile === 'Created Profile') return bot.createMessage(msg.channel.id, ':white_check_mark: Generated Profile.')
+          if (profile !== 'Created Profile') {
+            var profileArray = []
+            for (var i in profile) {
+              profileArray.push(profile[i][0].firstUpperCase() + ': ' + profile[i][1])
+            }
+            setTimeout(() => {
+              if (profileArray.length === 0) {
+                profileArray.push('**As you look around, you realise, there is only a empty profile.**')
+              }
+              return bot.createMessage(msg.channel.id, profileArray.join('\n'))
+            }, 500)
+          }
+        }).catch((e) => {
+          return bot.createMessage(msg.channel.id, ':white_check_mark: Generated User for Achievements & Profile')
+        })
+      } else {
+        if (suffix.toLowerCase().startsWith('set')) {
+          if (suffix.split(' ')[1] && suffix.split(' ')[2]) {
+            db.updateProfile(msg.author.id, suffix.split(' ')[1], suffix.substr(suffix.split(' ')[1].length + 'set'.length + 2)).then((t) => {
+              if (t === 'Pushed') return bot.createMessage(msg.channel.id, 'Added field to db.')
+              if (t === 'Updated') return bot.createMessage(msg.channel.id, 'Updated field to db.')
+            }).catch((e) => {
+              bot.createMessage(msg.channel.id, 'Error: ' + e)
+            })
+          } else {
+            bot.createMessage(msg.channel.id, 'Invalid arguments.')
+          }
+        }
+        if (suffix.toLowerCase().startsWith('remove')) {
+          if (suffix.split(' ')[1]) {
+            db.updateProfile(msg.author.id, suffix.split(' ')[1], true).then((done) => {
+              bot.createMessage(msg.channel.id, 'Deleted field.')
+            })
+          }
+        }
+        if (msg.mentions.length === 1) {
+          db.getProfile(msg.mentions[0].id).then((profile) => {
+            if (profile === 'Missing Profile') return bot.createMessage(msg.channel.id, ':x: **Specified user has no profile**.')
+            if (profile !== 'Missing Profile') {
+              var profileArray = []
+              for (var i in profile) {
+                profileArray.push(profile[i][0].firstUpperCase() + ': ' + profile[i][1])
+              }
+              setTimeout(() => {
+                if (profileArray.length === 0) {
+                  profileArray.push('**As you look around, you realise, there is only a empty profile.**')
+                }
+                return bot.createMessage(msg.channel.id, profileArray.join('\n'))
+              }, 500)
+            }
+          })
+        }
+      }
     }
   }
 }
