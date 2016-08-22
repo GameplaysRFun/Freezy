@@ -22,6 +22,7 @@
     },
     "keys": {
         "ytapi": "youtube v3 api key",
+        "soundcloudCID": "",
         "cse": "cse key",
         "discordbots": "your discord bots api key"
     }
