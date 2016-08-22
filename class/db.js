@@ -1,7 +1,7 @@
 const Datastore = require('nedb')
 const config = require('../config.json')
 const Logger = require('./logger.js')
-const path = require("path");
+const path = require("path")
 var masterUser = config.perms.masterUsers
 var serverDB = new Datastore({ filename: path.join(__dirname, "../", "datastorage", "servers"), autoload: true })
 var userDB = new Datastore({ filename: path.join(__dirname, "../", "datastorage", "users"), autoload: true })
@@ -27,8 +27,8 @@ exports.guildCreation = function (server, user) {
     serverData.lvl2 = []
     serverData.lvl3 = []
     serverData.welcoming = false
-    serverData.welcome_message = 'Welcome ${user} to **${guild}**!'
-    serverData.farewell_message = 'Farewell, ${user}!'
+    serverData.welcome_message = 'Welcome **${user}** to **${guild}**!'
+    serverData.farewell_message = 'Farewell, **${user}**!'
     serverDB.insert(serverData, function (err) {
       if (err) {
         console.log(err.stack) 
@@ -117,9 +117,9 @@ exports.changeLvl = function (server, user, level) {
   })
 }
 
-exports.checkIfLvl = function (server, user, level) {
+exports.checkIfLvl = function (server, user) {
   return new Promise((resolve, reject) => {
-    if (!server || !user || !level) return reject('Abort! Missing some parameters!')
+    if (!server || !user) return reject('Abort! Missing some parameters!')
     serverDB.findOne({serverId: server}, function (e, doc) {
       if (!doc) return reject('No DB')
       if (e) return reject(e)
@@ -192,6 +192,54 @@ exports.checkAchievement = function (user, id) {
       if (!doc) return reject(exports.createUser(user))
       if (doc.achievements.indexOf(id) >= 0) return resolve(true)
       if (doc.achievements.indexOf(id) < 0) return reject()
+    })
+  })
+}
+exports.getProfile = function (user, owner) {
+  return new Promise((resolve, reject) => {
+    userDB.findOne({userId: user}, function (e, doc) {
+      if (owner && !doc) return reject(exports.createUser(user))
+      if (!owner && !doc) return resolve('Missing Profile')
+      if (!doc.profile && owner) {
+        userDB.update({userId: user}, {$set: {profile: []}}, {}, (e) => {
+          if (e) return reject(e)
+          return resolve('Created Profile')
+        })
+      } else if (!doc.profile && !owner) return resolve('Missing Profile')
+      if (doc.profile) return resolve(doc.profile)
+    })
+  })
+}
+
+exports.updateProfile = function (user, type, value) {
+  return new Promise((resolve, reject) => {
+    userDB.findOne({userId: user}, function (e, doc) {
+      if (!doc) return reject(exports.createUser(user))
+      if (doc.profile) {
+        var exist = false
+        for (var i in doc.profile) {
+          if (doc.profile[i][0].toLowerCase() === type.toLowerCase()) {
+            exist = true
+            userDB.update({userId: user}, {$pull: {profile: [type.toLowerCase(), doc.profile[i][1]]}}, {}, (e) => {
+              if (e) return reject
+              if (value !== true) {
+                userDB.update({userId: user}, {$push: {profile: [type.toLowerCase(), value]}}, {}, (e) => {
+                  if (e) return reject(e)
+                  return resolve('Updated')
+                })
+              } else return resolve('Deleted')
+            })
+          }
+        }
+        setTimeout(() => {
+          if (!exist) {
+            userDB.update({userId: user}, {$push: {profile: [type.toLowerCase(), value]}}, {}, (e) => {
+              if (e) return reject(e)
+              return resolve('Pushed')
+            })
+          }
+        }, 250)
+      }
     })
   })
 }
