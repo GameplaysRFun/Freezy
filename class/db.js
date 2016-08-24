@@ -5,6 +5,7 @@ const path = require("path")
 var masterUser = config.perms.masterUsers
 var serverDB = new Datastore({ filename: path.join(__dirname, "../", "datastorage", "servers"), autoload: true })
 var userDB = new Datastore({ filename: path.join(__dirname, "../", "datastorage", "users"), autoload: true })
+var tagDB = new Datastore({ filename: path.join(__dirname, "../", "datastorage", "tags"), autoload: true })
 /*
 *
 * Server Database
@@ -240,6 +241,47 @@ exports.updateProfile = function (user, type, value) {
           }
         }, 250)
       }
+    })
+  })
+}
+
+/*
+* TagDB
+*/
+
+exports.createTag = function (user, tag, content) {
+  return new Promise((resolve, reject) => {
+    tagDB.findOne({tag: {$regex: /(tag)+/ig}}, function (e, doc) {
+      if (e) return reject(e)
+      if (!doc) {
+        tagDB.insert({tag: tag, owner: user, content: content}, function (e) {
+          if (e) return reject(e)
+          return resolve('Created')
+        })
+      } else {
+        return reject('Already exist')
+      }
+    })
+  })
+}
+exports.getTag = function (tag) {
+  return new Promise((resolve, reject) => {
+    tagDB.findOne({tag: tag}, function (e, doc) {
+      if (e) return reject(e)
+      if (!doc) return reject('Missing')
+      return resolve(doc)
+    })
+  })
+}
+exports.editTag = function (user, tag, content) {
+  return new Promise((resolve, reject) => {
+    tagDB.findOne({tag: tag}, function (e, doc) {
+      if (doc.owner !== user) return reject('Not owner')
+      if (e) return reject(e)
+      tagDB.update({tag: tag}, {tag: tag, owner: user, content: content}, {}, (e) => {
+        if (e) return reject(e)
+        return resolve('Updated')
+      })
     })
   })
 }
