@@ -1,15 +1,15 @@
+"use strict"
 const Eris = require('eris')
 const Logger = require('./class/logger.js')
 const config = require('./config.json')
-const cmd = require('./class/commands.js')
+const cmd = require('./class/pluginHandler.js')
 const pkg = require('./package.json')
 const db = require('./class/db.js')
-var token = config.login.token
-var masterUser = config.perms.masterUsers
-var stacktrace = config.config.stacktrace
-var shards = config.config.shards
-var prefix = config.config.prefix
-var bot = new Eris(token, {maxShards: shards, disableEvents: {'TYPING_START': true, 'PRESENCE_UPDATE': true}})
+let token = config.login.token
+let stacktrace = config.config.stacktrace
+let shards = config.config.shards
+let prefix = config.config.prefix
+let bot = new Eris(token, {maxShards: shards, disableEvents: {'TYPING_START': true, 'PRESENCE_UPDATE': true}})
 var appid = ''
 bot.vc = []
 bot.getOAuthApplication().then((oauth) => {
@@ -24,7 +24,7 @@ bot.getOAuthApplication().then((oauth) => {
 function discordBotsUpdate (auth) {
   if (config.config.discordbots) {
     var postData = {}
-    var request = require('request')
+    let request = require('request')
     function post () {
       return request({
         method: 'POST',
@@ -58,6 +58,9 @@ function discordBotsUpdate (auth) {
     }, 1000) // Ensures POST request is done
   }
 }
+String.prototype.tagParse = function (guild, member) {
+  return this.replaceAll('${atuser}', `<@${member.user.id}>`).replaceAll('${user}', member.user.username).replaceAll('${guild}', guild.name)
+}
 String.prototype.replaceAll = function (target, replacement) {
   return this.split(target).join(replacement)
 }
@@ -65,16 +68,16 @@ String.prototype.replaceAll = function (target, replacement) {
 if (prefix === '>') {
   Logger.warn(`You're using the default '${prefix}' prefix for your bot, consider changing it!`)
 }
-var startup = new Date()
+let startup = new Date()
 Logger.log(`Loading Freezy ${pkg.version}...`)
 bot.on('shardReady', (id) => {
-  var ready = new Date() - startup
+  let ready = new Date() - startup
   Logger.log(`Shard #${id + 1} is ready! Time taken so far ${ready}ms.`)
 })
 bot.on('ready', () => {
   appid = bot.user.id
   discordBotsUpdate()
-  var ready = new Date() - startup
+  let ready = new Date() - startup
   bot.shards.forEach((shard) => {
     shard.editGame({name: pkg.version + ` | Shard ${shard.id + 1} of ${shards}!`, type: 1, url: 'https://twitch.tv//'})
   })
@@ -89,59 +92,25 @@ bot.on('messageCreate', (msg) => {
       var base = msg.content.substr(prefix.length)
       if (msg.mentions.length === 1)  {
         if (msg.mentions[0].id === bot.user.id) {
-          var subsplit = msg.content.split(' ')
+          let subsplit = msg.content.split(' ')
           if (msg.content.startsWith('<@')) {
             base = msg.content.substr(subsplit[0].length + 1)
           }
         }
       }
-      var stub = base.split(' ')
-      var name = stub[0]
-      var suffix = base.substr(stub[0].length + 1)
+      let stub = base.split(' ')
+      let name = stub[0]
+      let suffix = base.substr(stub[0].length + 1)
       try {
-        var lvl = cmd.execute[name].lvl
-        if (msg.channel.guild) {
-          if (lvl >= 1) {
-            db.checkIfLvl(msg.channel.guild.id, msg.author.id, lvl).then((pass) => {
-              if (pass < lvl) return bot.createMessage(msg.channel.id, "You don't have sufficient permissions!\nThis command requires level " + lvl + ", but you have level " + pass)
-              if (pass >= lvl) {
-                cmd.execute[name].fn(bot, msg, suffix)
-              }
-            }).catch((e) => {
-              if (e === 'No DB') {
-                bot.createMessage(msg.channel.id, 'Detected missing database entry.. **Fixing it!**\nFeel free to use me again!')
-                db.guildCreation(msg.channel.guild.id, msg.channel.guild.ownerID)
-              } else {
-                console.log(e)
-                bot.createMessage(msg.channel.id, ':x: **Unknown database error!** Report this to the devs!\n**ERR**: ' + e)
-              }
-            })
-          } else {
-            cmd.execute[name].fn(bot, msg, suffix)
-          }
-        } else {
-          var globallvl = 0
-          if (msg.author.id.indexOf(masterUser)) globallvl = 9 
-          if (lvl <= globallvl) {
-            if (!cmd.execute[name].guildOnly) {
-              cmd.execute[name].fn(bot, msg, suffix)
-            } else {
-              bot.createMessage(msg.channel.id, 'To prevent any crashes via DM, the following command is only available for use in servers!')
-            }
-          } else {
-            bot.createMessage(msg.channel.id, "You don't have sufficient permissions!\nThis command requires level " + lvl + ", but you have level " + globallvl)
-          }
-        }
+        cmd.exec['run'].fn(bot, msg, suffix, name)
         Logger.log(`${msg.author.username} executed <${stub.join(' ')}>`)
       } catch (err) {
-        if (cmd.execute[name] !== undefined) {
           Logger.error(`${msg.author.username} attempted to execute <${stub.join(' ')}>`)
           if (stacktrace) {
             Logger.error(`Stacktrace: ${err.stack}`)
           } if (!stacktrace) {
             Logger.error(`Error: ${err}`)
           }
-        }
       }
     }
   }
@@ -158,14 +127,14 @@ bot.on('guildDelete', (guild) => {
 bot.on('guildMemberAdd', (guild, member) => {
   db.checkCustomization(guild.id, 'welcoming').then((promise) => {
     db.checkCustomization(guild.id, 'welcome_message').then((welcomeMsg) => {
-      bot.createMessage(guild.defaultChannel.id, welcomeMsg.replaceAll('${user}', `<@${member.user.id}>`).replaceAll('${guild}', guild.name))
+      bot.createMessage(guild.defaultChannel.id, welcomeMsg.tagParse(guild, member))
     })
   })
 })
 bot.on('guildMemberRemove', (guild, member) => {
   db.checkCustomization(guild.id, 'welcoming').then((promise) => {
     db.checkCustomization(guild.id, 'farewell_message').then((farewellMsg) => {
-      bot.createMessage(guild.defaultChannel.id, farewellMsg.replaceAll('${user}', `<@${member.user.id}>`).replaceAll('${guild}', guild.name))
+      bot.createMessage(guild.defaultChannel.id, farewellMsg.tagParse(guild, member))
     })
   })
 })

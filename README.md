@@ -6,7 +6,7 @@ NOTE! Freezy uses Eris development build, to get it, type in `npm install abalab
 [![Node](https://img.shields.io/badge/Node-5.x.x-green.svg)](http://nodejs.org)
 [![NPM](https://img.shields.io/badge/NPM-3.x.x-blue.svg)](http://nodejs.org)
 [![License](https://img.shields.io/badge/License-GPL--3.0-blue.svg)]()
-[![Version](https://img.shields.io/badge/Version-1.0.6-green.svg)]()
+[![Version](https://img.shields.io/badge/Version-1.1.0-green.svg)]()
 [![Status](https://img.shields.io/badge/Status-Stable-green.svg)]()
 ## Getting started
 First up open the config.json file, it should look something like this;
@@ -20,12 +20,6 @@ First up open the config.json file, it should look something like this;
         "shards": 3,
         "stacktrace": false,
         "discordbots": false
-    },
-    "server": {
-        "id": "your bot's server id",
-        "contributor": "your contributor role id",
-        "staff": "your staff role id",
-        "enabled": false
     },
     "perms": {
         "masterUsers": [],
