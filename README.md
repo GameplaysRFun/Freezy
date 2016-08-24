@@ -21,12 +21,6 @@ First up open the config.json file, it should look something like this;
         "stacktrace": false,
         "discordbots": false
     },
-    "server": {
-        "id": "your bot's server id",
-        "contributor": "your contributor role id",
-        "staff": "your staff role id",
-        "enabled": false
-    },
     "perms": {
         "masterUsers": [],
         "lvl3": [],
