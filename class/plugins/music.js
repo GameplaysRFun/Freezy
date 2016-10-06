@@ -94,8 +94,12 @@ exports.exec = {
               if (sec < 10) sec = '0' + sec
               let parsedTime = min + ':' + sec
               if (info.title.length > 34 && info.title.lastIndexOf(info.title) !== info.title.length) info.title = info.title.substr(0, 35) + '...'
-              vc.queue.push([suffix, info.title, parsedTime, msg.author.id])
-              bot.createMessage(msg.channel.id, 'Requested and enqueued **' + info.title+ '** in position **#' + vc.queue.length + '**')
+              if (min < 15) {
+                vc.queue.push([suffix, info.title, parsedTime, msg.author.id])
+                bot.createMessage(msg.channel.id, 'Requested and enqueued **' + info.title+ '** in position **#' + vc.queue.length + '**')
+              } else {
+                return bot.createMessage(msg.channel.id, '**Sorry! I only accept 15 minute long videos!**')
+              }
             })
             } else {
               if (suffix.startsWith('http://soundcloud.com') || suffix.startsWith('https://soundcloud.com')) {
@@ -118,12 +122,11 @@ exports.exec = {
             }
           } else {
             function play (link) {
-              if (link.includes('youtube') || link.includes('youtu.be')) {vc.playStream(ytdl(link), {inlineVolume: true})}
               if (link.includes('soundcloud.com')) {
                 if (vc.queue.length === 0) {
                   request.get('http://api.soundcloud.com/resolve.json?url=' + link + '&client_id=' + config.keys.soundcloudCID, (e, req, body) => {
                     let data = JSON.parse(body)
-                    vc.playStream(request.get(data["stream_url"] + '?client_id=' + config.keys.soundcloudCID), {inlineVolume: true})
+                    vc.play(request.get(data["stream_url"] + '?client_id=' + config.keys.soundcloudCID), {inlineVolume: true})
                     var min = Math.floor(data.duration / 60000 % 60)
                     var sec = Math.floor(data.duration / 1000 % 60)
                     if (min < 10) min = '0' + min
@@ -133,11 +136,11 @@ exports.exec = {
                     bot.createMessage(msg.channel.id, '`[' + min + ':' + sec + ']` Now playing **' + songName + '** requested by ' + msg.author.username + '#' + msg.author.discriminator + ' (' + msg.author.id + ')...')
                   })
                 } else {
-                  vc.playStream(request.get(link), {inlineVolume: true})
+                  vc.play(request.get(link), {inlineVolume: true})
                 }
               }
               if (!link.includes('youtube') && !link.includes('youtu.be') && !link.includes('soundcloud.com')) {
-                vc.playStream(request.get(link))
+                vc.play(request.get(link), {inlineVolume: true})
                 bot.createMessage(msg.channel.id, '`[??:??`] Now playing **' + suffix.match(/\/([a-z0-9%]+)\.mp3/ig)[0] + '** requested by ' + msg.author.username + '#' + msg.author.discriminator + ' (' + msg.author.id + ')...')
               }
               if (vc.queue.length === 0) {
@@ -151,10 +154,18 @@ exports.exec = {
                     var parsedTime = min + ':' + sec
                     var songName = info.title
                     if (songName.length >= 35) songName = info.title.substr(0, 35) + '...'
-                    bot.createMessage(msg.channel.id, '`[' + parsedTime + ']` Now playing **' + songName + '** requested by ' + msg.author.username + '#' + msg.author.discriminator + ' (' + msg.author.id + ')...')
+                    if (min < 15) {
+                      vc.play(ytdl(link), {inlineVolume: true})
+                      bot.createMessage(msg.channel.id, '`[' + parsedTime + ']` Now playing **' + songName + '** requested by ' + msg.author.username + '#' + msg.author.discriminator + ' (' + msg.author.id + ')...')
+                    } else {
+                      bot.createMessage(msg.channel.id, '**Sorry! I only accept 15 minute long videos!**')
+                    }
                   })
                 }
               } else {
+                if (link.includes('youtube')) {
+                  vc.play(ytdl(link), {inlineVolume: true})
+                }
                 var next = ''
                 function getName (pos) {
                   if (!pos) pos = 0
