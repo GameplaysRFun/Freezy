@@ -1,5 +1,6 @@
 "use strict"
 const Eris = require('eris')
+const request = require('request')
 const Logger = require('./class/logger.js')
 const config = require('./config.json')
 const cmd = require('./class/pluginHandler.js')
@@ -15,12 +16,25 @@ bot.vc = []
 bot.getOAuthApplication().then((oauth) => {
   appid = oauth.id
 })
+
 /*
 * Functions corner
 * Used to set prototype functions
 * which can be used everywhere
 * in the file
 */
+
+function checkVersion () {
+  request('https://raw.githubusercontent.com/TeamCernodile/Freezy/master/package.json', (error, response, body) => {
+    if (error) return Logger.err(error)
+    if (response.statusCode === 200) {
+      let data = JSON.parse(body)
+      if (data.version > pkg.version) Logger.warn('Your copy of Freezy is out of date, please update to version ' + data.version + '!')
+    } else {
+      return Logger.error('Unable to fetch latest version! Code: ' + response.statusCode)
+    }
+  })
+}
 function discordBotsUpdate (auth) {
   if (config.config.discordbots) {
     var postData = {}
@@ -77,9 +91,10 @@ bot.on('shardReady', (id) => {
 bot.on('ready', () => {
   appid = bot.user.id
   discordBotsUpdate()
+  checkVersion()
   let ready = new Date() - startup
   bot.shards.forEach((shard) => {
-    shard.editGame({name: pkg.version + ` | Shard ${shard.id + 1} of ${shards}!`, type: 1, url: 'https://twitch.tv//'})
+    shard.editStatus({name: pkg.version + ` | Shard ${shard.id + 1} of ${shards}!`, type: 1, url: 'https://twitch.tv//'})
   })
   if (!bot.bot) Logger.warn(`Not a OAuth application! Consider using OAuth application, unless it's a private selfbot!`)
   Logger.log(`Logged in as ${bot.user.username}#${bot.user.discriminator} (ID: ${bot.user.id})`)
@@ -141,5 +156,4 @@ bot.on('guildMemberRemove', (guild, member) => {
 bot.on('warn', (msg, shard) => {
   Logger.warn(`${msg} @ Shard #${shard + 1}`)
 })
-
 bot.connect()
