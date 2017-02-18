@@ -1,0 +1,25 @@
+{
+  "name": "Freezy",
+  "version": "2.0.0",
+  "description": "A discord bot designed for ease-of-use.",
+  "readme": "https://github.com/TeamCernodile/Freezy/blob/master/README.md",
+  "author": {
+    "name": "Joann Mõndresku",
+    "email": "joann@cernodile.com",
+    "url": "https://www.cernodile.com"
+  },
+  "engines": {
+    "node": "^5.x.x",
+    "npm": ">=3.x.x"
+  },
+  "license": "GPL-3.0",
+  "repository": "https://github.com/TeamCernodile/Freezy/",
+  "dependencies": {
+    "discord.js": "hydrabolt/discord.js#indev-prism",
+    "nedb": "^1.8.0",
+    "request": "^2.74.0",
+    "unirest": "^0.5.1",
+    "rethinkdb": "^2.3.3",
+    "youtube-dl": "^1.11.1"
+  }
+}
