@@ -1,0 +1,35 @@
+{
+    "login": {
+        "token": ""
+    },
+    "api": {
+        "mashape": "",
+        "google": "",
+        "discordbots": ""
+    },
+    "Constants": {
+        "shards": 2,
+        "startAt": 0,
+        "endAt": 2,
+        "vcPerShard": 3,
+        "songsPerList": 40,
+        "prefix": "your prefix-"
+    },
+    "permissions": {
+        "master": [""]
+    },
+    "donation": {
+        "paypal": "Your paypal.me link"
+    },
+    "links": {
+        "github": "https://github.com/TeamCernodile/Freezy",
+        "support": "Support server"
+    },
+    "database": {
+        "host": "localhost",
+        "user": "admin",
+        "pass": "",
+        "dbName": "Freezy",
+        "timeout": 3000
+    }
+}
