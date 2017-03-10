@@ -2,12 +2,14 @@ var config = require("../config.json");
 module.exports = {
   "ping": {
     desc: "Checks my latency",
+    aliases: ["latency"],
+    usage: "ping",
     level: 0,
     fn: function(bot, msg, suffix) {
       msg.channel.sendMessage("**Calculating...**").then(m => {
         m.edit("", {
           "embed": {
-            color: 0x228dc8,
+            color: parseInt(config.Constants.embedColor, 16),
             author: {
               name: bot.user.username,
               icon_url: bot.user.displayAvatarURL.replace('.jpg', '.png')
@@ -23,13 +25,34 @@ module.exports = {
       }).catch(e => {});
     }
   },
+  "mutual": {
+    desc: "Check for any mutual servers, because Discord doesn't show.",
+    usage: "mutual",
+    level: 0,
+    fn: function (bot, msg, suffix) {
+      bot.shard.broadcastEval("this.guilds.filter(g => g.members.has('" + msg.author.id + "')).array()").then(r => {
+        var m = [];
+        m.push("**Mutual Servers**\n");
+        for (var i in r) {
+          for (var j in r[i]) {
+            m.push(r[i][j].name);
+          }
+        }
+        msg.channel.sendMessage(m);
+      }).catch(e => {
+        msg.channel.sendMessage(":x: **Unable to fetch mutual servers!**");
+        console.error(e);
+      });
+    }
+  },
   "info": {
     desc: "Shows my general stats.",
+    usage: "info",
     level: 0,
     fn: function (bot, msg, suffix) {
       bot.shard.fetchClientValues("guilds.size").then(guilds => {
         var embed = {
-          color: 0x228dc8,
+          color: parseInt(config.Constants.embedColor, 16),
           author: {
             name: bot.user.username,
             icon_url: bot.user.displayAvatarURL.replace('.jpg', '.png')
@@ -40,7 +63,7 @@ module.exports = {
           fields: [
             {
               name: "Shard",
-              value: (parseInt(process.env["SHARD_ID"]) + 1)  + "/" + process.env["SHARD_COUNT"],
+              value: (parseInt(process.env["SHARD_ID"], 16) + 1)  + "/" + process.env["SHARD_COUNT"],
               inline: true
             },
             {
@@ -66,6 +89,7 @@ module.exports = {
   },
   "invite": {
     desc: "Fancy command to give you information about how to invite me to your server.",
+    usage: "invite",
     level: 0,
     fn: function (bot, msg, suffix) {
       bot.fetchApplication("@me").then(r => {
@@ -78,7 +102,7 @@ module.exports = {
           qs += "\nIf that's out of bounds for you, you can donate to my [PayPal](" + config.donation.paypal + ")";
         }
         var embed = {
-          color: 0x228dc8,
+          color: parseInt(config.Constants.embedColor, 16),
           author: {
             name: bot.user.username,
             icon_url: bot.user.displayAvatarURL.replace('.jpg', '.png')
@@ -99,6 +123,7 @@ module.exports = {
   },
   "user": {
     desc: "Get details about yourself or someone else",
+    usage: "user *<@user>*",
     level: 0,
     fn: function(bot, msg, suffix) {
       var target = {
@@ -141,7 +166,7 @@ module.exports = {
         });
       }
       var embed = {
-        color: 0xffffff,
+        color: parseInt(config.Constants.embedColor, 16),
         author: {
           name: bot.user.username,
           icon_url: bot.user.displayAvatarURL.replace('.jpg', '.png')
@@ -160,7 +185,8 @@ module.exports = {
   },
   "server": {
     desc: "Show general information about the server you're in",
-    lvl: 0,
+    usage: "server",
+    level: 0,
     guild: true,
     fn: function (bot, msg, suffix) {
       var bots = msg.guild.members.filter(user => user.user.bot).size;
@@ -238,7 +264,7 @@ module.exports = {
           });
         }
       var embed = {
-        color: 0x228dc8,
+        color: parseInt(config.Constants.embedColor, 16),
         author: {
           name: bot.user.username,
           icon_url: bot.user.displayAvatarURL.replace('.jpg', '.png')
@@ -256,6 +282,7 @@ module.exports = {
   },
   "escape": {
     desc: "Find out a escape sequence for anything!",
+    usage: "escape <text>",
     level: 0,
     fn: function (bot, msg, suffix) {
       var input = (suffix ? suffix : "\u{d83e}\u{dd14}");
