@@ -1,5 +1,7 @@
-var unirest = require("unirest");
 var config = require("../config.json");
+var unirest = require("unirest");
+var cleverbot = require("cleverbot.io");
+var cb = new cleverbot(config.api.cleverbot.user, config.api.cleverbot.key);
 module.exports = {
   "fortune": {
     desc: "Encounter a random fortune cookie message.",
@@ -7,6 +9,19 @@ module.exports = {
     fn: function(bot, msg, suffix) {
       unirest.get(`https://thibaultcha-fortunecow-v1.p.mashape.com/random`).header("X-Mashape-Key", config.api.mashape).header("Accept", "text/plain").end(function (result) {
         msg.channel.sendMessage('```' + result.body + '```');
+      });
+    }
+  },
+  "talk": {
+    desc: "Talk with a AI robot, all sessions should be personalized.",
+    aliases: ["cb", "cleverbot"],
+    level: 0,
+    fn: function (bot, msg, suffix) {
+      if (!suffix) return msg.channel.sendMessage(":x: **You need to pass something in order to talk with the cleverbot**");
+      cb.setNick("Freezy-" + msg.author.id);
+      cb.ask(suffix, function (err, response) {
+        if (err) return msg.channel.sendMessage(":x: **Oops!** It seems as the API we are using (cleverbot.io) is experiencing issues with your query!");
+        msg.channel.sendMessage("\u{d83d}\u{dcac} " + response);
       });
     }
   },
