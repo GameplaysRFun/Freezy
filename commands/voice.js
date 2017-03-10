@@ -11,7 +11,7 @@ function keepGoing (vc, obj, channel, bot) {
     support += "\nIf that's out of bounds for you, you can donate to my [PayPal](" + config.donation.paypal + ")";
   }
   var embed = {
-    color: 0x228dc8,
+    color: parseInt(config.Constants.embedColor, 16),
     author: {
       name: bot.user.username + " Music",
       icon_url: bot.user.displayAvatarURL.replace('.jpg', '.png')
@@ -19,7 +19,7 @@ function keepGoing (vc, obj, channel, bot) {
     thumbnail: {
       url: obj.thumbnail
     },
-    description: "Now playing **[" + obj.title + "](" + obj.link + ")**\nEstimated length for this song is `" + obj.length.split(":")[0] + " minutes and " + obj.length.split(":")[1] + " seconds`" + support,
+    description: "Now playing **[" + obj.title + "](" + obj.link + ")**\nEstimated length for this song is `" + obj.length + "`" + support,
     footer: {
       text: "This message was bot executed",
       icon_url: bot.user.displayAvatarURL.replace('.jpg', '.png')
@@ -38,23 +38,23 @@ function keepGoing (vc, obj, channel, bot) {
       if (vc.queue.length > 0) {
         keepGoing(vc, vc.queue[0], channel, bot);
       } else {
-        vc.disconnect().catch(e => {});
-        channel.sendMessage("No song has been requested in time. Disconnecting from voice channel.").catch(e => {});
+        vc.disconnect();
       }
-    } else vc.disconnect().catch(e => {});
+    } else vc.disconnect();
   });
 }
 module.exports = {
   "np": {
     desc: "Now playing song",
     guild: true,
+    aliases: ["playing"],
     level: 0,
     fn: function (bot, msg, suffix) {
       if (bot.voiceConnections.has(msg.guild.id)) {
         var vc = bot.voiceConnections.get(msg.guild.id);
         if (vc.queue) {
           var embed = {
-            color: 0x228dc8,
+            color: parseInt(config.Constants.embedColor, 16),
             author: {
               name: bot.user.username + " Music",
               icon_url: bot.user.displayAvatarURL.replace('.jpg', '.png')
@@ -62,7 +62,7 @@ module.exports = {
             thumbnail: {
               url: vc.queue[0].thumbnail
             },
-            description: "Currently playing **[" + vc.queue[0].title + "](" + vc.queue[0].link + ")**\nEstimated length for this song is `" + vc.queue[0].length.split(":")[0] + " minutes and " + vc.queue[0].length.split(":")[1] + " seconds`",
+            description: "Currently playing **[" + vc.queue[0].title + "](" + vc.queue[0].link + ")**\nEstimated length for this song is `" + vc.queue[0].length + "`",
             footer: {
             text: "This command was user-executed",
               icon_url: msg.author.displayAvatarURL.replace('.jpg', '.png')
@@ -81,6 +81,7 @@ module.exports = {
   "voice": {
     desc: "Connects the bot to a voice channel.",
     guild: true,
+    aliases: ["summon", "vc", "music", "join-voice", "join"],
     level: 0,
     fn: function (bot, msg, suffix) {
       if (bot.voiceConnections.size >= config.Constants.vcPerShard) {
@@ -93,6 +94,9 @@ module.exports = {
               const dispatcher = vc.playStream(ytdl("https://www.youtube.com/watch?v=xy_NKN75Jhw"), {passes: 2, volume: 0.8})
               vc.dispatcher = dispatcher;
               vc.firstSong = true;
+              vc.on("disconnect", () => {
+                return msg.channel.sendMessage("No new songs have been requested in time. **Leaving voice channel!**");
+              });
               vc.dispatcher.once("end", () => {
                 var vc = bot.voiceConnections.get(msg.guild.id);
                 vc.firstSong = false;
@@ -100,11 +104,10 @@ module.exports = {
                   if (vc.queue.length > 0) {
                     keepGoing(vc, vc.queue[0], msg.channel, bot);
                   } else {
-                    vc.disconnect().catch(e => {});
+                    vc.disconnect();
                   }
                 } else {
-                  vc.disconnect().catch(e => {});
-                  msg.channel.sendMessage("No song has been requested in time. Disconnecting from voice channel.").catch(e => {});
+                  vc.disconnect();
                 }
               });
             }).catch(e => {});
@@ -120,7 +123,8 @@ module.exports = {
   "skip": {
     desc: "Skips a song",
     guild: true,
-    level: 0,
+    aliases: ["next"],
+    level: 1,
     fn: function (bot, msg, suffix) {
       if (bot.voiceConnections.has(msg.guild.id)) {
         var vc = bot.voiceConnections.get(msg.guild.id);
@@ -131,6 +135,7 @@ module.exports = {
   "queue": {
     desc: "Checks the queue",
     guild: true,
+    aliases: ["playlist"],
     level: 0,
     fn: function (bot, msg, suffix) {
       if (bot.voiceConnections.has(msg.guild.id)) {
@@ -143,13 +148,28 @@ module.exports = {
             msgArray.push("\n*...and more*");
           }
         }
-        msg.channel.sendMessage(msgArray.join('\n')).catch(e => {});
+        msg.channel.sendEmbed({
+          color: parseInt(config.Constants.embedColor, 16),
+          author: {
+            name: bot.user.username + " Music",
+            icon_url: bot.user.displayAvatarURL.replace('.jpg', '.png')
+          },
+          thumbnail: {url: vc.queue[0].thumbnail},
+          description: msgArray.join('\n'),
+          footer: {
+            text: "This message was user executed",
+            icon_url: msg.author.displayAvatarURL.replace('.jpg', '.png')
+          },
+          timestamp: new Date(Date.now()).toISOString()
+        });
       } else msg.channel.sendMessage("**Sorry!** It seems as I'm not streaming in this server.").catch(e => {});
     }
   },
   "request": {
     desc: "Request a song",
-    level: 0,
+    guild: true,
+    aliases: ["add", "addsong", "enqueue"],
+    level: 1,
     fn: function (bot, msg, suffix) {
       var support = "";
       if (config.links.github) support += "\nSupport " + bot.user.username + "'s development by contributing to the [source code](" + config.links.github + ")";
@@ -181,18 +201,52 @@ module.exports = {
                     return msg.channel.sendMessage("Enqueued " + i + " songs to the playlist!\nThe playlist is now full.").catch(e => {});
                   }
                 } else {
-                  vc.queue.push({link: info[i].webpage_url, length: info[i].duration, title: info[i].title, thumbnail: info[i].thumbnail});
+                  var title = "";
+                  switch (info[i].extractor) {
+                    case "soundcloud":
+                      title = info[i].title + " by " + info[i].uploader;
+                      break;
+                    default:
+                      title = info[i].title;
+                      break;
+                  }
+                  var duration = "";
+                  var temp1 = info[i].duration.split(":");
+                  for (var key in temp1) {
+                    if (parseInt(temp1[key]) < 10) {
+                      temp1[key] = "0" + temp1[key];
+                    }
+                  }
+                  duration = temp1.join(":");
+                  vc.queue.push({link: info[i].webpage_url, length: duration, title: title, thumbnail: info[i].thumbnail});
                 }
               }
             } else {
               if (vc.queue.length > (config.Constants.songsPerList - 1)) {
                 msg.channel.sendMessage("Playlist is full. Try again later.").catch(e => {});
               }
-              vc.queue.push({link: info.webpage_url, length: info.duration, title: info.title, thumbnail: info.thumbnail});
+              var title = "";
+              switch (info.extractor) {
+                case "soundcloud":
+                  title = info.title + " by " + info.uploader;
+                  break;
+                default:
+                  title = info.title;
+              }
+              var duration = "";
+              var temp1 = info.duration.split(":");
+              for (var key in temp1) {
+                if (parseInt(temp1[key]) < 10) {
+                  temp1[key] = "0" + temp1[key];
+                }
+              }
+              duration = temp1.join(":");
+              vc.queue.push({link: info.webpage_url, length: duration, title: title, thumbnail: info.thumbnail});
               if (vc.firstSong) {
                 vc.dispatcher.end();
               } else {
                 msg.channel.sendEmbed({
+                  color: parseInt(config.Constants.embedColor, 16),
                   author: {
                     name: bot.user.username + " Music",
                     icon_url: bot.user.displayAvatarURL.replace('.jpg', '.png')
