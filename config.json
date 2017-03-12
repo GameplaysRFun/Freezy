@@ -1,11 +1,14 @@
 {
     "login": {
-        "token": ""
+        "token": "your token here"
     },
     "api": {
-        "mashape": "",
-        "google": "",
-        "discordbots": ""
+        "mashape": "put your mashape api key here",
+        "discordbots": "discord bots auth",
+        "cleverbot": {
+            "user": "cleverbot.io user",
+            "key": "cleverbot.io key"
+        }
     },
     "Constants": {
         "shards": 2,
@@ -16,7 +19,7 @@
         "prefix": "your prefix-"
     },
     "permissions": {
-        "master": [""]
+        "master": ["your user id"]
     },
     "donation": {
         "paypal": "Your paypal.me link"
