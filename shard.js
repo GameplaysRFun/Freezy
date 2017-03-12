@@ -81,7 +81,7 @@ function antiBotCollection (m, newGuild) {
     return true;
   }
 }
-Client.login(config.login.token);
+Client.login(process.env["TOKEN"]);
 Client.on('ready', () => {
   Logger.log("Ready!", `Shard ${shard}: `);
   Client.user.setGame("on Shard " + (shard) + " | " + shards);
@@ -251,6 +251,7 @@ Client.on("messageDeleteBulk", m => {
               Client.channels.get(array[0].options["logs_channel"]).sendFile(fs.readFileSync("./logs/" + fileName), "deleted-messages.txt", deleted).then(ms => {
                 fs.unlinkSync("./logs/" + fileName);
               }).catch(e => {
+                fs.unlinkSync("./logs/" + fileName);
                 console.error(e);
               });
             }
