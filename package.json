@@ -21,6 +21,6 @@
     "unirest": "^0.5.1",
     "rethinkdb": "^2.3.3",
     "youtube-dl": "^1.11.1",
-    "cleverbot.io": "1.0.4"
+    "cleverbot.io": "^1.0.4"
   }
 }
