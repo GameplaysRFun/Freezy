@@ -11,10 +11,10 @@
         }
     },
     "Constants": {
-        "shards": 2, // number of shards to spawn - optimally 100 servers for each shard
-        "startAt": 0, // do not modify
-        "endAt": 2, // same as number of shards to spawn
-        "vcPerShard": 3, // number of voice channels to allow consecutively per shard
+        "shards": 2,
+        "startAt": 0,
+        "endAt": 2,
+        "vcPerShard": 3,
         "songsPerList": 40,
         "prefix": "your prefix-"
     },
